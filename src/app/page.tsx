@@ -289,19 +289,20 @@ function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, popul
 
 function BigScore({ score, size = 100 }: { score: number; size?: number }) {
   const color = getScoreColor(score);
-  const radius = (size - 12) / 2;
+  const stroke = size >= 140 ? 4 : 6;           // thinner ring at hero size
+  const radius = (size - stroke * 2) / 2;
   const circ = 2 * Math.PI * radius;
   const offset = circ - (score / 100) * circ;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e2e8f0" strokeWidth="6" />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth="6"
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} className="score-ring" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono font-extrabold" style={{ fontSize: size * 0.28, color, lineHeight: 1 }}>{score}</span>
-        <span className="text-[8px] font-semibold text-slate-400 tracking-widest mt-0.5">/100</span>
+        <span className="font-mono font-extrabold" style={{ fontSize: size * 0.34, color, lineHeight: 1 }}>{score}</span>
+        <span className="text-[9px] font-semibold text-slate-400 tracking-widest mt-1">/100</span>
       </div>
     </div>
   );
@@ -813,31 +814,45 @@ export default function Dashboard() {
           {selected ? (
             <div className="p-5 animate-fadein">
               {/* District Health Summary Card */}
-              <div className="mb-5 bg-slate-50 rounded-xl pt-5 pb-4 px-4 border border-slate-200 text-center">
+              <div className="mb-5 bg-slate-50 rounded-xl pt-5 pb-5 px-4 border border-slate-200 text-center">
+                {/* District name */}
                 <div className="text-lg font-bold text-slate-900 leading-tight">{selected.district.name}</div>
-                <div className="text-xs text-slate-500 mt-0.5 mb-5">
+                {/* Subtitle: area · population */}
+                <div className="text-xs text-slate-500 mt-0.5 mb-4">
                   {selected.district.area} &middot; Pop.&nbsp;{selected.district.population.toLocaleString()}
                 </div>
-                <div className="flex flex-col items-center mb-4">
-                  <BigScore score={selected.scores.overall} size={120} />
-                  <div className="text-[10px] font-bold text-slate-400 tracking-widest mt-3">DISTRICT HEALTH INDEX</div>
+                {/* Hero score */}
+                <div className="flex flex-col items-center mb-1">
+                  <BigScore score={selected.scores.overall} size={150} />
+                  <div className="text-[10px] font-bold text-slate-400 tracking-widest mt-2.5">DISTRICT HEALTH INDEX</div>
                 </div>
-                <div className="flex flex-col items-center gap-1.5">
+                {/* Status badge + trend — secondary row */}
+                <div className="flex items-center justify-center gap-2.5 mt-3 flex-wrap">
                   <div className="text-sm font-bold px-3 py-1 rounded-full"
                     style={{ color: getScoreColor(selected.scores.overall), backgroundColor: getScoreColor(selected.scores.overall) + "18" }}>
                     {selected.scores.label}
                   </div>
                   {(() => {
+                    // Prefer real prior-score delta; fall back to weighted component trend (always available)
                     const prior = selected.raw.priorOverallScore;
-                    if (!prior) return null;
-                    const delta = ((selected.scores.overall - prior) / prior) * 100;
-                    const up = delta >= 0;
+                    let up: boolean;
+                    let pct: string;
+                    if (prior > 0) {
+                      const delta = ((selected.scores.overall - prior) / prior) * 100;
+                      up = delta >= 0;
+                      pct = Math.abs(delta).toFixed(1);
+                    } else {
+                      // Compute weighted trend from per-component trend fractions
+                      const tr = selected.scores.trends;
+                      const wt = tr.safety * 0.25 + tr.economic * 0.20 + tr.services * 0.20 + tr.code * 0.20 + tr.community * 0.15;
+                      if (Math.abs(wt) < 0.005) return null;
+                      up = wt > 0;
+                      pct = (Math.abs(wt) * 100).toFixed(1);
+                    }
                     return (
-                      <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                        <span className="font-semibold" style={{ color: up ? "#059669" : "#dc2626" }}>
-                          {up ? "▲ +" : "▼ "}{delta.toFixed(1)}%
-                        </span>
-                        <span>vs. prior quarter</span>
+                      <div className="text-xs font-semibold flex items-center gap-1"
+                        style={{ color: up ? "#059669" : "#dc2626" }}>
+                        {up ? "▲" : "▼"} {pct}% vs. prior quarter
                       </div>
                     );
                   })()}
