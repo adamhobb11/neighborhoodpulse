@@ -487,6 +487,8 @@ export default function Dashboard() {
   const mapInstance = useRef<any>(null);
   const districtLayersRef = useRef<Map<number, any>>(new Map());
   const scoreMarkersRef = useRef<Map<number, any>>(new Map());
+  // Ref so Leaflet hover closures always read current selection without stale capture
+  const selectedIdRef = useRef<number | null>(null);
 
   // ── Derived: re-score with custom weights ──────────────
   const districtData = useMemo((): DistrictData[] => {
@@ -522,7 +524,7 @@ export default function Dashboard() {
       className: "",
       iconSize: [58, 58],
       iconAnchor: [29, 29],
-      html: `<div style="width:58px;height:58px;border-radius:50%;background:white;border:3.5px solid ${scoreColor};box-shadow:0 2px 14px rgba(0,0,0,0.22),0 0 0 2px white;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;font-family:'DM Mono',monospace;position:relative">
+      html: `<div class="score-circle-marker" style="width:58px;height:58px;border-radius:50%;background:white;border:3.5px solid ${scoreColor};box-shadow:0 2px 14px rgba(0,0,0,0.22),0 0 0 2px white;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;font-family:'DM Mono',monospace;position:relative">
         <div style="font-size:18px;font-weight:800;color:${scoreColor};line-height:1">${score}</div>
         <div style="font-size:8px;font-weight:700;color:#64748b;letter-spacing:0.06em;margin-top:1px">D${distId}</div>
       </div>`,
@@ -600,18 +602,17 @@ export default function Dashboard() {
 
             layer.on("click", () => { setSelectedId(distId); setBriefing(null); });
 
-            layer.bindTooltip(
-              `<div style="font-family:'DM Sans',sans-serif;min-width:150px">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-                  <div style="width:12px;height:12px;border-radius:3px;background:${distColor};flex-shrink:0"></div>
-                  <div style="font-weight:700;font-size:13px;color:#1e293b">${dd.district.name}</div>
-                </div>
-                <div style="font-size:11px;color:#64748b;margin-bottom:6px">${dd.district.area}</div>
-                <div style="font-size:20px;font-weight:800;font-family:'DM Mono',monospace;color:${scoreColor}">${score}<span style="font-size:11px;color:#94a3b8;font-weight:500">/100</span></div>
-                <div style="font-size:10px;font-weight:700;color:${scoreColor};text-transform:uppercase;letter-spacing:0.05em">${label}</div>
-              </div>`,
-              { sticky: true, opacity: 0.97, className: "" }
-            );
+            // Hover: subtle fill/stroke lift — only when not selected
+            layer.on("mouseover", () => {
+              if (selectedIdRef.current !== distId) {
+                (layer as any).setStyle({ fillOpacity: 0.48, weight: 4.0, opacity: 1.0 });
+              }
+            });
+            layer.on("mouseout", () => {
+              if (selectedIdRef.current !== distId) {
+                (layer as any).setStyle({ fillOpacity: 0.28, weight: 2.5, opacity: 0.85 });
+              }
+            });
           },
         }).addTo(map);
       } catch {
@@ -651,9 +652,20 @@ export default function Dashboard() {
 
   // ── Reset briefing when district changes ──────────────
   useEffect(() => {
+    selectedIdRef.current = selectedId;
     setBriefing(null);
     setBriefingLoading(false);
     setExpandedComponent(null);
+
+    // Update polygon visual state: selected vs default
+    districtLayersRef.current.forEach((layer, id) => {
+      if (id === selectedId) {
+        layer.setStyle({ fillOpacity: 0.55, weight: 4.5, opacity: 1.0 });
+        layer.bringToFront?.();
+      } else {
+        layer.setStyle({ fillOpacity: 0.28, weight: 2.5, opacity: 0.85 });
+      }
+    });
   }, [selectedId]);
 
   const handleViewChange = useCallback((v: "map" | "ranking") => {

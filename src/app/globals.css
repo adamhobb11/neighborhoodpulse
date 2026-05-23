@@ -99,3 +99,17 @@ body {
 .modal-backdrop {
   backdrop-filter: blur(2px);
 }
+
+/* ─── Score circle marker — hover scale animation ─────── */
+
+.score-circle-marker {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow  0.18s ease;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+.leaflet-marker-icon:hover .score-circle-marker {
+  transform: scale(1.12);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.30), 0 0 0 3px white !important;
+}
