@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import type { DistrictData, AIBriefing, ComponentScores, DistrictRawData } from "@/lib/data/types";
+import type { DistrictData, AIBriefing, ComponentScores, DistrictRawData, DistrictScores } from "@/lib/data/types";
 import { getScoreColor, getScoreLabel, calculateDistrictScores, DEFAULT_WEIGHTS } from "@/lib/scoring/engine";
 
 // ─── Fixed district colors (Montgomery official palette) ─────────────────────
@@ -143,6 +143,85 @@ function SectionLabel({ label }: { label: string }) {
 const COMPONENT_INDEX_WEIGHT: Record<keyof ComponentScores, number> = {
   safety: 25, economic: 20, services: 20, code: 20, community: 15,
 };
+
+// ─── AI Insight Card ──────────────────────────────────────
+
+const INSIGHT_DIMS = [
+  { key: "safety"    as keyof ComponentScores, label: "Public Safety",       icon: "🛡" },
+  { key: "economic"  as keyof ComponentScores, label: "Economic Vitality",   icon: "📈" },
+  { key: "services"  as keyof ComponentScores, label: "City Services",       icon: "🏛" },
+  { key: "code"      as keyof ComponentScores, label: "Code Compliance",     icon: "📋" },
+  { key: "community" as keyof ComponentScores, label: "Community Access",    icon: "🏘" },
+] as const;
+
+const INSIGHT_RECS: Record<string, string> = {
+  safety:    "Increase Fire/EMS capacity and environmental enforcement in highest-incident zones.",
+  economic:  "Fast-track permit approvals and incentivize new business license applications.",
+  services:  "Audit 311 staffing and resolution workflows — response time is the bottleneck.",
+  code:      "Deploy inspectors to highest open-violation blocks and accelerate closure rate.",
+  community: "Evaluate gaps in park access, shelter locations, and community center coverage.",
+};
+
+function AIInsightCard({ scores }: { scores: DistrictScores }) {
+  const dims = INSIGHT_DIMS.map(d => ({ ...d, score: scores[d.key] as number }));
+  const sorted = [...dims].sort((a, b) => b.score - a.score);
+  const strongest = sorted[0];
+  const weakest   = sorted[sorted.length - 1];
+  const statusColor = getScoreColor(scores.overall);
+
+  return (
+    <div className="mb-4 rounded-xl border border-blue-100 overflow-hidden">
+      {/* Header */}
+      <div className="px-4 py-2.5 bg-[#1e3a5f] flex items-center justify-between">
+        <div className="text-[10px] font-bold text-blue-200 tracking-widest">✦ AI DISTRICT INSIGHT</div>
+        <div className="text-[9px] text-blue-300/70 font-medium">Executive summary</div>
+      </div>
+
+      {/* Body */}
+      <div className="bg-white px-4 py-3.5">
+        {/* 3-row data grid */}
+        <div className="space-y-2.5">
+          {/* Status */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase w-20 shrink-0">Status</span>
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full"
+              style={{ color: statusColor, backgroundColor: statusColor + "18" }}>
+              {scores.label}
+            </span>
+          </div>
+
+          {/* Strongest */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase w-20 shrink-0">Strongest</span>
+            <span className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+              <span>{strongest.icon} {strongest.label}</span>
+              <span className="font-mono font-bold text-[11px]"
+                style={{ color: getScoreColor(strongest.score) }}>{strongest.score}</span>
+            </span>
+          </div>
+
+          {/* Weakest */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase w-20 shrink-0">Weakest</span>
+            <span className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+              <span>{weakest.icon} {weakest.label}</span>
+              <span className="font-mono font-bold text-[11px]"
+                style={{ color: getScoreColor(weakest.score) }}>{weakest.score}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Priority action */}
+        <div className="mt-3 pt-2.5 border-t border-slate-100">
+          <div className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-1.5">Priority Action</div>
+          <div className="text-xs text-slate-700 leading-snug">
+            {INSIGHT_RECS[weakest.key] ?? `Address performance gaps in ${weakest.label}.`}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, population, expanded, onToggle }: {
   label: string; score: number; icon: string; trend?: number;
@@ -866,6 +945,9 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              {/* AI District Insight — computed instantly from current scores */}
+              <AIInsightCard scores={selected.scores} />
+
               {/* Component scores — click any row to expand breakdown */}
               <div className="bg-white rounded-xl px-4 pt-4 pb-2 mb-4 border border-slate-200">
                 <div className="flex items-center justify-between mb-3">
@@ -915,10 +997,10 @@ export default function Dashboard() {
                   context={`Parks · Community Centers · Emergency Stations · ${selected.raw.schools} schools · ${selected.raw.pharmacies} pharmacies · ${selected.raw.shelters} shelters`} />
               </div>
 
-              {/* AI Briefing */}
+              {/* Full AI Analysis */}
               <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                 <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                  <div className="text-[10px] font-bold text-slate-400 tracking-widest">AI DISTRICT BRIEFING</div>
+                  <div className="text-[10px] font-bold text-slate-400 tracking-widest">FULL AI ANALYSIS</div>
                   {!briefingLoading && briefing && (
                     <button onClick={() => {
                       if (!selected) return;
