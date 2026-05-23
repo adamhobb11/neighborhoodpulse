@@ -595,11 +595,6 @@ export default function Dashboard() {
               computedCentroids.set(distId, [c.lat, c.lng]);
             } catch { /* fall back to hardcoded center */ }
 
-            const distColor = DISTRICT_COLORS[distId] ?? "#64748b";
-            const score = dd.scores.overall;
-            const scoreColor = getScoreColor(score);
-            const label = getScoreLabel(score);
-
             layer.on("click", () => { setSelectedId(distId); setBriefing(null); });
 
             // Hover: subtle fill/stroke lift — only when not selected
