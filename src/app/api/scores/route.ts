@@ -2,76 +2,81 @@
  * GET /api/scores
  *
  * Fetches live data from Montgomery's ArcGIS Open Data Portal,
- * aggregates it by council district, and computes Neighborhood Health Index scores.
+ * aggregates it by council district, and computes health index scores.
  *
- * Falls back to mock data if ArcGIS APIs are unreachable.
+ * Returns an error if live data is unavailable — never falls back to mock data.
  */
 
 import { NextResponse } from "next/server";
-import { getMockDistrictData, DISTRICTS, MOCK_RAW_DATA } from "@/lib/data/mockData";
 import { fetchAllDatasets } from "@/lib/data/arcgis";
 import { aggregateAllData } from "@/lib/data/aggregate";
 import { calculateDistrictScores } from "@/lib/scoring/engine";
-import type { ArcGISFeature } from "@/lib/data/types";
-
-type F = ArcGISFeature<Record<string, unknown>>;
-const asFeatures = (arr: ArcGISFeature<unknown>[] | undefined): F[] =>
-  (arr ?? []) as F[];
+import { DISTRICTS } from "@/lib/data/mockData";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
   try {
+    // ── Fetch live data from ArcGIS ──────────────────────────────────────
     const datasets = await fetchAllDatasets();
 
-    // District boundary polygons are required — without them we can't do
-    // point-in-polygon assignment for datasets that lack a district field.
-    if (!datasets.districts || datasets.districts.features.length === 0) {
-      throw new Error("Council district boundaries unavailable");
+    // Council district boundaries are required for spatial joins
+    if (!datasets.districts?.features?.length) {
+      return NextResponse.json(
+        {
+          error: "Council district boundaries unavailable — cannot compute scores",
+          details: "The ArcGIS council districts endpoint did not return boundary data. All spatial joins depend on this dataset.",
+          failedEndpoints: datasets.errors,
+        },
+        { status: 502 }
+      );
     }
 
+    // ── Aggregate all features by district ────────────────────────────────
     const rawByDistrict = aggregateAllData({
-      districtFeatures: asFeatures(datasets.districts.features),
-      permits:          asFeatures(datasets.permits?.features),
-      licenses:         asFeatures(datasets.licenses?.features),
-      requests311:      asFeatures(datasets.requests311?.features),
-      codeViolations:   asFeatures(datasets.codeViolations?.features),
-      fireResponses:    asFeatures(datasets.fireResponses?.features),
-      nuisances:        asFeatures(datasets.nuisances?.features),
-      stations:         asFeatures(datasets.stations?.features),
-      parks:            asFeatures(datasets.parks?.features),
-      schools:          asFeatures(datasets.schools?.features),
-      pharmacies:       asFeatures(datasets.pharmacies?.features),
-      shelters:         asFeatures(datasets.shelters?.features),
+      districtFeatures: datasets.districts.features,
+      permits: datasets.permits?.features ?? [],
+      licenses: datasets.licenses?.features ?? [],
+      requests311: datasets.requests311?.features ?? [],
+      codeViolations: datasets.codeViolations?.features ?? [],
+      fireResponses: datasets.fireResponses?.features ?? [],
+      nuisances: datasets.nuisances?.features ?? [],
+      stations: datasets.stations?.features ?? [],
+      parks: [
+        ...(datasets.parks?.features ?? []),
+        ...(datasets.centers?.features ?? []),
+      ],
+      schools: datasets.schools?.features ?? [],
+      pharmacies: datasets.pharmacies?.features ?? [],
+      shelters: datasets.shelters?.features ?? [],
     });
 
+    // ── Score each district ───────────────────────────────────────────────
     const districtData = DISTRICTS.map((district) => {
       const raw = rawByDistrict[district.id];
-      // Inject prior-quarter reference score from mock data (no historical ArcGIS endpoint available)
-      raw.priorOverallScore = MOCK_RAW_DATA[district.id]?.priorOverallScore ?? 0;
       const scores = calculateDistrictScores(raw, district.population);
       return { district, scores, raw };
     });
 
-    const hasPartialErrors = datasets.errors.length > 0;
-
     return NextResponse.json({
       data: districtData,
-      source: hasPartialErrors ? "live-partial" : "live",
+      source: "live",
+      warnings: datasets.errors.length > 0
+        ? { partialData: true, failedEndpoints: datasets.errors }
+        : undefined,
       fetchedAt: datasets.fetchedAt,
       dataPortal: "https://opendata.montgomeryal.gov",
-      ...(hasPartialErrors && { errors: datasets.errors }),
     });
   } catch (error) {
-    console.error("Live data unavailable, falling back to mock:", error);
+    console.error("Failed to compute scores:", error);
 
-    const districtData = getMockDistrictData();
-    return NextResponse.json({
-      data: districtData,
-      source: "mock",
-      fetchedAt: new Date().toISOString(),
-      dataPortal: "https://opendata.montgomeryal.gov",
-    });
+    return NextResponse.json(
+      {
+        error: "Failed to fetch live data from Montgomery's Open Data Portal",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 502 }
+    );
   }
 }

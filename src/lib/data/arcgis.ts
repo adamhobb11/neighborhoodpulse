@@ -14,7 +14,7 @@ const FETCH_TIMEOUT = 15000; // 15 second timeout
 /**
  * Generic ArcGIS query fetcher with error handling and timeout.
  */
-async function queryFeatureService<T>(
+async function queryFeatureService<T = Record<string, unknown>>(
   endpoint: string,
   params: {
     where?: string;
@@ -68,99 +68,94 @@ export async function fetchCouncilDistricts() {
   });
 }
 
-/** Format a Date as "YYYY-MM-DD" for ArcGIS DateOnly field comparisons (DATE '...').  */
-function isoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
 /**
- * Fetch construction permits issued in the last N days.
- * `IssuedDate` is esriFieldTypeDateOnly — use DATE '...' syntax.
+ * Fetch construction permits for the last N days.
+ * IssuedDate is esriFieldTypeDateOnly — requires DATE 'YYYY-MM-DD' syntax.
  */
-export async function fetchConstructionPermits(days: number = 180) {
-  const since = isoDate(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+export async function fetchConstructionPermits(days: number = 365) {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
   return queryFeatureService(ENDPOINTS.constructionPermits, {
     where: `IssuedDate >= DATE '${since}'`,
-    outFields: "OBJECTID,IssuedDate,ProjectType,DistrictCouncil,PermitStatus",
-    returnGeometry: false,
+    outFields: "*",
+    returnGeometry: true,
     resultRecordCount: 2000,
+    orderByFields: "OBJECTID DESC",
   });
 }
 
 /**
- * Fetch currently active business licenses (expiry in future) for City of Montgomery.
- * `pvEXPIRE` is esriFieldTypeDateOnly — use DATE '...' syntax.
+ * Fetch active business licenses for City of Montgomery.
+ * pvEXPIRE is esriFieldTypeDateOnly — requires DATE 'YYYY-MM-DD' syntax.
+ * CITY = 'YES' filters to city limits only (vs 'NO' for out-of-city businesses).
  */
 export async function fetchBusinessLicenses() {
-  const today = isoDate(new Date());
+  const today = new Date().toISOString().slice(0, 10);
   return queryFeatureService(ENDPOINTS.businessLicense, {
     where: `pvEXPIRE >= DATE '${today}' AND CITY = 'YES'`,
-    outFields: "OBJECTID,pvEFFDATE,pvEXPIRE,pvrtDESC,CITY",
+    outFields: "*",
     returnGeometry: true,
     resultRecordCount: 2000,
   });
 }
 
 /**
- * Fetch 311 service requests (scored on resolution rate, not a rolling window).
+ * Fetch 311 service requests.
  */
 export async function fetchServiceRequests311() {
   return queryFeatureService(ENDPOINTS.serviceRequests311, {
-    outFields: "OBJECTID,District,Status,Create_Date,Close_Date",
-    returnGeometry: false,
+    outFields: "*",
+    returnGeometry: true,
     resultRecordCount: 2000,
+    orderByFields: "OBJECTID DESC",
   });
 }
 
 /**
- * Fetch code violations (scored on open count and closure rate).
+ * Fetch code violations.
  */
 export async function fetchCodeViolations() {
   return queryFeatureService(ENDPOINTS.codeViolations, {
-    outFields: "OBJECTID,CaseStatus,CouncilDistrict",
-    returnGeometry: false,
+    outFields: "*",
+    returnGeometry: true,
     resultRecordCount: 2000,
+    orderByFields: "OBJECTID DESC",
   });
 }
 
 /**
- * Fetch the most recent fire/EMS incidents ordered by recency.
- * NOTE: The Fire_Responses_view dataset was last updated May 2022.
- * We fetch the 2000 most recent records and use relative district comparisons.
- * `Alarm_Date_Time` is esriFieldTypeDate — stored as epoch ms.
+ * Fetch fire/EMS response incidents.
  */
 export async function fetchFireResponses() {
   return queryFeatureService(ENDPOINTS.fireResponses, {
-    outFields: "OBJECTID,Alarm_Date_Time,District,Incident_Type",
-    returnGeometry: false,
-    orderByFields: "OBJECTID DESC",
+    outFields: "*",
+    returnGeometry: true,
     resultRecordCount: 2000,
+    orderByFields: "OBJECTID DESC",
   });
 }
 
 /**
- * Fetch all environmental nuisance reports (only 330 total in dataset).
- * Requires geometry for point-in-polygon district assignment.
+ * Fetch environmental nuisance reports.
  */
 export async function fetchEnvironmentalNuisance() {
   return queryFeatureService(ENDPOINTS.environmentalNuisance, {
-    outFields: "OBJECTID,Source_Date,Type",
+    outFields: "*",
     returnGeometry: true,
     resultRecordCount: 2000,
   });
 }
 
 /**
- * Fetch fire and police station locations (layer 3 of Story Map service).
- * The `category` attribute distinguishes fire stations from police stations.
+ * Fetch fire and police station locations.
  */
 export async function fetchFirePoliceStations() {
   return queryFeatureService(ENDPOINTS.firePoliceStations, {
-    outFields: "OBJECTID,Facility_Name,category,Address",
+    outFields: "*",
     returnGeometry: true,
   });
 }
-
 
 /**
  * Fetch parks and trail locations.
@@ -205,7 +200,7 @@ export async function fetchPharmacies() {
 /**
  * Fetch tornado shelter locations.
  */
-export async function fetchTornadoShelters() {
+export async function fetchShelters() {
   return queryFeatureService(ENDPOINTS.tornadoShelters, {
     outFields: "*",
     returnGeometry: true,
@@ -214,7 +209,7 @@ export async function fetchTornadoShelters() {
 
 /**
  * Fetch all datasets in parallel for scoring.
- * Uses Promise.allSettled so a single failing endpoint doesn't block the others.
+ * Returns an object with all dataset results.
  */
 export async function fetchAllDatasets() {
   const [
@@ -227,6 +222,7 @@ export async function fetchAllDatasets() {
     nuisances,
     stations,
     parks,
+    centers,
     schools,
     pharmacies,
     shelters,
@@ -239,28 +235,28 @@ export async function fetchAllDatasets() {
     fetchFireResponses(),
     fetchEnvironmentalNuisance(),
     fetchFirePoliceStations(),
-    fetchParksAndTrails(),        // also contains community centers (FACILITYTYPE field)
+    fetchParksAndTrails(),
+    fetchCommunityCenters(),
     fetchEducationFacilities(),
     fetchPharmacies(),
-    fetchTornadoShelters(),
+    fetchShelters(),
   ]);
 
-  const all = [districts, permits, licenses, requests311, codeViolations, fireResponses, nuisances, stations, parks, schools, pharmacies, shelters];
-
   return {
-    districts:      districts.status      === "fulfilled" ? districts.value      : null,
-    permits:        permits.status        === "fulfilled" ? permits.value        : null,
-    licenses:       licenses.status       === "fulfilled" ? licenses.value       : null,
-    requests311:    requests311.status    === "fulfilled" ? requests311.value    : null,
+    districts: districts.status === "fulfilled" ? districts.value : null,
+    permits: permits.status === "fulfilled" ? permits.value : null,
+    licenses: licenses.status === "fulfilled" ? licenses.value : null,
+    requests311: requests311.status === "fulfilled" ? requests311.value : null,
     codeViolations: codeViolations.status === "fulfilled" ? codeViolations.value : null,
-    fireResponses:  fireResponses.status  === "fulfilled" ? fireResponses.value  : null,
-    nuisances:      nuisances.status      === "fulfilled" ? nuisances.value      : null,
-    stations:       stations.status       === "fulfilled" ? stations.value       : null,
-    parks:          parks.status          === "fulfilled" ? parks.value          : null,
-    schools:        schools.status        === "fulfilled" ? schools.value        : null,
-    pharmacies:     pharmacies.status     === "fulfilled" ? pharmacies.value     : null,
-    shelters:       shelters.status       === "fulfilled" ? shelters.value       : null,
-    errors: all
+    fireResponses: fireResponses.status === "fulfilled" ? fireResponses.value : null,
+    nuisances: nuisances.status === "fulfilled" ? nuisances.value : null,
+    stations: stations.status === "fulfilled" ? stations.value : null,
+    parks: parks.status === "fulfilled" ? parks.value : null,
+    centers: centers.status === "fulfilled" ? centers.value : null,
+    schools: schools.status === "fulfilled" ? schools.value : null,
+    pharmacies: pharmacies.status === "fulfilled" ? pharmacies.value : null,
+    shelters: shelters.status === "fulfilled" ? shelters.value : null,
+    errors: [districts, permits, licenses, requests311, codeViolations, fireResponses, nuisances, stations, parks, centers, schools, pharmacies, shelters]
       .filter((r) => r.status === "rejected")
       .map((r) => (r as PromiseRejectedResult).reason?.message || "Unknown error"),
     fetchedAt: new Date().toISOString(),

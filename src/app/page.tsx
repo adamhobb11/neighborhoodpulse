@@ -812,19 +812,18 @@ export default function Dashboard() {
         <div className="w-full md:w-[390px] border-t md:border-t-0 md:border-l border-slate-200 overflow-y-auto bg-white flex-shrink-0">
           {selected ? (
             <div className="p-5 animate-fadein">
-              {/* District header */}
-              <div className="mb-4">
-                <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-0.5">{selected.district.area.toUpperCase()}</div>
-                <div className="text-xl font-bold text-slate-900">{selected.district.name}</div>
-                <div className="text-xs text-slate-400 mt-0.5">Pop. {selected.district.population.toLocaleString()} · Council District {selected.district.id}</div>
-              </div>
-
-              {/* Score overview */}
-              <div className="flex items-center gap-5 mb-5 bg-slate-50 rounded-xl p-4 border border-slate-200">
-                <BigScore score={selected.scores.overall} />
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 tracking-wider mb-1">OVERALL HEALTH INDEX</div>
-                  <div className="text-sm font-bold px-2.5 py-0.5 rounded-full inline-block mb-1.5"
+              {/* District Health Summary Card */}
+              <div className="mb-5 bg-slate-50 rounded-xl pt-5 pb-4 px-4 border border-slate-200 text-center">
+                <div className="text-lg font-bold text-slate-900 leading-tight">{selected.district.name}</div>
+                <div className="text-xs text-slate-500 mt-0.5 mb-5">
+                  {selected.district.area} &middot; Pop.&nbsp;{selected.district.population.toLocaleString()}
+                </div>
+                <div className="flex flex-col items-center mb-4">
+                  <BigScore score={selected.scores.overall} size={120} />
+                  <div className="text-[10px] font-bold text-slate-400 tracking-widest mt-3">DISTRICT HEALTH INDEX</div>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="text-sm font-bold px-3 py-1 rounded-full"
                     style={{ color: getScoreColor(selected.scores.overall), backgroundColor: getScoreColor(selected.scores.overall) + "18" }}>
                     {selected.scores.label}
                   </div>
@@ -834,12 +833,12 @@ export default function Dashboard() {
                     const delta = ((selected.scores.overall - prior) / prior) * 100;
                     const up = delta >= 0;
                     return (
-                      <>
-                        <div className="text-xs font-medium" style={{ color: up ? "#059669" : "#dc2626" }}>
+                      <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                        <span className="font-semibold" style={{ color: up ? "#059669" : "#dc2626" }}>
                           {up ? "▲ +" : "▼ "}{delta.toFixed(1)}%
-                        </div>
-                        <div className="text-xs text-slate-400 mt-0.5">vs. prior quarter</div>
-                      </>
+                        </span>
+                        <span>vs. prior quarter</span>
+                      </div>
                     );
                   })()}
                 </div>

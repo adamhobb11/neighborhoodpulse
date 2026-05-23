@@ -38,7 +38,7 @@ export const ENDPOINTS = {
   parksAndTrail: `${ARCGIS_BASE}/Park_and_Trail/FeatureServer`,
 
   /** Community centers. Feeds Community Access score. */
-  communityCenters: `${ARCGIS_BASE}/Community_Center/FeatureServer`,
+  communityCenters: `${ARCGIS_BASE}/Community_Center/FeatureServer/1`,
 
   /** Education facilities. Feeds Community Access score. */
   educationFacilities: `${ARCGIS_BASE}/Education_Facility/FeatureServer`,
