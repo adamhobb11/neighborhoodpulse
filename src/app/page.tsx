@@ -593,14 +593,18 @@ export default function Dashboard() {
 
   // ── Helper: build score circle icon ───────────────────
   const makeScoreIcon = useCallback((L: any, score: number, distId: number) => {
-    const scoreColor = getScoreColor(score);
+    // Gradient ring: outer div carries the gradient, inner white circle creates the ring gap.
+    // Same GAUGE_STYLES palette used by the gauge arc, component bars, legend, and badges.
+    const { gradStart, gradEnd, textColor } = GAUGE_STYLES[getScoreLabel(score)] ?? GAUGE_STYLES["Stable"];
     return L.divIcon({
       className: "",
       iconSize: [58, 58],
       iconAnchor: [29, 29],
-      html: `<div class="score-circle-marker" style="width:58px;height:58px;border-radius:50%;background:white;border:3.5px solid ${scoreColor};box-shadow:0 2px 14px rgba(0,0,0,0.22),0 0 0 2px white;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;font-family:'DM Mono',monospace;position:relative">
-        <div style="font-size:18px;font-weight:800;color:${scoreColor};line-height:1">${score}</div>
-        <div style="font-size:8px;font-weight:700;color:#64748b;letter-spacing:0.06em;margin-top:1px">D${distId}</div>
+      html: `<div class="score-circle-marker" style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,${gradStart},${gradEnd});display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.16),0 0 0 1.5px rgba(255,255,255,0.85)">
+        <div style="width:51px;height:51px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;font-family:'DM Mono',monospace">
+          <div style="font-size:18px;font-weight:800;color:${textColor};line-height:1">${score}</div>
+          <div style="font-size:8px;font-weight:700;color:#94a3b8;letter-spacing:0.06em;margin-top:1px">D${distId}</div>
+        </div>
       </div>`,
     });
   }, []);
