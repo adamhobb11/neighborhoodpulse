@@ -287,24 +287,74 @@ function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, popul
   );
 }
 
-function BigScore({ score, size = 100 }: { score: number; size?: number }) {
-  const color = getScoreColor(score);
-  const stroke = size >= 140 ? 4 : 6;           // thinner ring at hero size
-  const radius = (size - stroke * 2) / 2;
-  const circ = 2 * Math.PI * radius;
-  const offset = circ - (score / 100) * circ;
+// ─── Semi-circle gauge for District Health Index ──────────────────────────────
+
+const GAUGE_STYLES: Record<string, { gradStart: string; gradEnd: string; textColor: string }> = {
+  Thriving:  { gradStart: "#6ee7b7", gradEnd: "#059669", textColor: "#059669" },
+  Stable:    { gradStart: "#bae6fd", gradEnd: "#0369a1", textColor: "#0369a1" },
+  Watch:     { gradStart: "#fef08a", gradEnd: "#ca8a04", textColor: "#ca8a04" },
+  "At Risk": { gradStart: "#fca5a5", gradEnd: "#b91c1c", textColor: "#b91c1c" },
+  Critical:  { gradStart: "#fecdd3", gradEnd: "#9f1239", textColor: "#9f1239" },
+};
+
+const BADGE_STYLES: Record<string, string> = {
+  Thriving:  "bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 text-emerald-700 shadow-sm",
+  Stable:    "bg-gradient-to-r from-sky-50 to-sky-100 border border-sky-200 text-sky-700 shadow-sm",
+  Watch:     "bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200 text-yellow-700 shadow-sm",
+  "At Risk": "bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-700 shadow-sm",
+  Critical:  "bg-gradient-to-r from-rose-50 to-rose-100 border border-rose-200 text-rose-700 shadow-sm",
+};
+
+const INTERPRETATIONS: Record<string, string> = {
+  Thriving:  "Performing ahead of district benchmarks.",
+  Stable:    "Performing within expected range.",
+  Watch:     "Showing early signs of concern.",
+  "At Risk": "Requires closer monitoring.",
+  Critical:  "Immediate attention recommended.",
+};
+
+function SemiGauge({ score, label }: { score: number; label: keyof typeof GAUGE_STYLES }) {
+  const { gradStart, gradEnd, textColor } = GAUGE_STYLES[label] ?? GAUGE_STYLES["Stable"];
+  // Geometry: semi-circle, flat side down, opening upward
+  // cx=100 cy=100 r=82 sw=10 → path from (18,100) over (100,18) to (182,100)
+  const r = 82, sw = 10;
+  const totalArc = Math.PI * r;                      // full semi-circle length
+  const dashOffset = totalArc * (1 - score / 100);  // hide the unfilled portion from the right end
+  const uid = `gauge-${label.replace(/\s/g, "")}`;
+
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={stroke}
-          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} className="score-ring" />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono font-extrabold" style={{ fontSize: size * 0.34, color, lineHeight: 1 }}>{score}</span>
-        <span className="text-[9px] font-semibold text-slate-400 tracking-widest mt-1">/100</span>
-      </div>
-    </div>
+    <svg viewBox="0 0 200 108" className="w-full max-w-[220px]" aria-label={`Score ${score} out of 100`}>
+      <defs>
+        {/* Gradient runs left-to-right along the arc baseline */}
+        <linearGradient id={uid} gradientUnits="userSpaceOnUse" x1="18" y1="100" x2="182" y2="100">
+          <stop offset="0%" stopColor={gradStart} />
+          <stop offset="100%" stopColor={gradEnd} />
+        </linearGradient>
+      </defs>
+      {/* Track — full semi-circle, split into two quarter-arcs to avoid the degenerate
+          diametrically-opposite endpoint issue in SVG */}
+      <path
+        d={`M 18,100 A ${r},${r} 0 0 1 100,18 A ${r},${r} 0 0 1 182,100`}
+        fill="none" stroke="#e2e8f0" strokeWidth={sw} strokeLinecap="round"
+      />
+      {/* Fill — same path masked with stroke-dashoffset so animation works */}
+      <path
+        d={`M 18,100 A ${r},${r} 0 0 1 100,18 A ${r},${r} 0 0 1 182,100`}
+        fill="none" stroke={`url(#${uid})`} strokeWidth={sw} strokeLinecap="round"
+        strokeDasharray={totalArc} strokeDashoffset={dashOffset}
+        className="score-ring"
+      />
+      {/* Score number */}
+      <text x="100" y="79" textAnchor="middle" dominantBaseline="middle"
+        fontSize="42" fontWeight="800" fontFamily="'DM Mono', monospace" fill={textColor}>
+        {score}
+      </text>
+      {/* /100 label */}
+      <text x="100" y="97" textAnchor="middle" dominantBaseline="middle"
+        fontSize="11" fontWeight="600" fontFamily="'DM Sans', sans-serif" fill="#94a3b8" letterSpacing="2">
+        /100
+      </text>
+    </svg>
   );
 }
 
@@ -821,26 +871,31 @@ export default function Dashboard() {
           {selected ? (
             <div className="p-5 animate-fadein">
               {/* District Health Summary Card */}
-              <div className="mb-5 bg-slate-50 rounded-xl pt-5 pb-5 px-4 border border-slate-200 text-center">
-                {/* District name */}
-                <div className="text-lg font-bold text-slate-900 leading-tight">{selected.district.name}</div>
-                {/* Subtitle: area · population */}
-                <div className="text-xs text-slate-500 mt-0.5 mb-4">
+              <div className="mb-5 bg-white rounded-xl pt-5 pb-4 px-5 border border-slate-200 shadow-sm text-center">
+                {/* District name + meta */}
+                <div className="text-base font-bold text-slate-900 leading-tight">{selected.district.name}</div>
+                <div className="text-xs text-slate-400 mt-0.5 mb-3">
                   {selected.district.area} &middot; Pop.&nbsp;{selected.district.population.toLocaleString()}
                 </div>
-                {/* Hero score */}
-                <div className="flex flex-col items-center mb-1">
-                  <BigScore score={selected.scores.overall} size={150} />
-                  <div className="text-[10px] font-bold text-slate-400 tracking-widest mt-2.5">DISTRICT HEALTH INDEX</div>
+
+                {/* Semi-circle gauge */}
+                <div className="flex justify-center">
+                  <SemiGauge score={selected.scores.overall} label={selected.scores.label} />
                 </div>
-                {/* Status badge + trend — secondary row */}
-                <div className="flex items-center justify-center gap-2.5 mt-3 flex-wrap">
-                  <div className="text-sm font-bold px-3 py-1 rounded-full"
-                    style={{ color: getScoreColor(selected.scores.overall), backgroundColor: getScoreColor(selected.scores.overall) + "18" }}>
+
+                {/* Section label */}
+                <div className="text-[10px] font-bold text-slate-400 tracking-widest -mt-1 mb-3">
+                  DISTRICT HEALTH INDEX
+                </div>
+
+                {/* Status badge + trend */}
+                <div className="flex items-center justify-center gap-2.5 flex-wrap mb-2">
+                  {/* Premium pill badge */}
+                  <span className={`text-xs font-bold px-3.5 py-1 rounded-full ${BADGE_STYLES[selected.scores.label]}`}>
                     {selected.scores.label}
-                  </div>
+                  </span>
+                  {/* Trend — preserved exactly */}
                   {(() => {
-                    // Prefer real prior-score delta; fall back to weighted component trend (always available)
                     const prior = selected.raw.priorOverallScore;
                     let up: boolean;
                     let pct: string;
@@ -849,7 +904,6 @@ export default function Dashboard() {
                       up = delta >= 0;
                       pct = Math.abs(delta).toFixed(1);
                     } else {
-                      // Compute weighted trend from per-component trend fractions
                       const tr = selected.scores.trends;
                       const wt = tr.safety * 0.25 + tr.economic * 0.20 + tr.services * 0.20 + tr.code * 0.20 + tr.community * 0.15;
                       if (Math.abs(wt) < 0.005) return null;
@@ -863,6 +917,11 @@ export default function Dashboard() {
                       </div>
                     );
                   })()}
+                </div>
+
+                {/* Interpretation line */}
+                <div className="text-[11px] text-slate-400 leading-snug">
+                  {INTERPRETATIONS[selected.scores.label]}
                 </div>
               </div>
 
