@@ -26,6 +26,30 @@ export const DEFAULT_WEIGHTS: ComponentScores = {
   community: 0.15,
 };
 
+/**
+ * Code Compliance — normalization bounds (calibrated against live Montgomery data).
+ *
+ * Live violation density range: 7.8–218.9 per 10K residents (28× spread across 9 districts).
+ * Live closure rate range:      7.6%–42.2% (no district approaches the old 85% ceiling).
+ *
+ * Bounds are set with headroom above/below the current observed extremes so the
+ * score can react to future improvement or deterioration without re-flooring at 0.
+ */
+export const CODE_VIOLATION_RATE_MIN =  5;   // /10K — floor slightly below best observed (7.8)
+export const CODE_VIOLATION_RATE_MAX =  300; // /10K — ceiling above worst observed (218.9)
+export const CODE_CLOSURE_RATE_MIN   =  0;   // % — floor at zero; worst observed is 7.6%
+export const CODE_CLOSURE_RATE_MAX   =  70;  // % — aspirational ceiling; best observed is 42.2%
+
+/**
+ * City-wide median code violation closure rate derived from live Montgomery data
+ * (9-district median = 26.0%).  Used as the relative baseline for the code trend
+ * direction signal, replacing the aspirational 60% target that was calibrated for
+ * mock data and caused every district to show the maximum-negative ▼ 50% trend.
+ *
+ * Update when the city's median shifts meaningfully (>5 percentage points).
+ */
+export const CODE_CLOSURE_RATE_CITY_MEDIAN = 0.26;
+
 // ─── Normalization Helpers ──────────────────────────────
 
 /**
@@ -163,16 +187,22 @@ function scoreServices(raw: DistrictRawData): number {
  * Inputs:
  * - Open (unresolved) code violations per capita
  * - Violation closure rate
+ *
+ * Normalization bounds recalibrated against live Montgomery data (May 2026):
+ *   violationRate range observed: 7.8–218.9/10K  → bounds [5, 300]
+ *   closureRate range observed:   7.6%–42.2%     → bounds [0%, 70%]
+ * Previous bounds [1, 40] and [15%, 85%] were mock-data calibrated and caused
+ * every live district to floor at 0.
  */
 function scoreCode(raw: DistrictRawData, population: number): number {
   const perCapita = (count: number) => (count / Math.max(population, 1)) * 10000;
 
   // Violations per capita (inverted — fewer = better)
   const violationRate = perCapita(raw.codeViolationsOpen);
-  const violationScore = normalize(violationRate, 1, 40, true);
+  const violationScore = normalize(violationRate, CODE_VIOLATION_RATE_MIN, CODE_VIOLATION_RATE_MAX, true);
 
   // Closure rate (higher = better enforcement)
-  const closureScore = normalize(raw.codeViolationsClosedRate * 100, 15, 85, false);
+  const closureScore = normalize(raw.codeViolationsClosedRate * 100, CODE_CLOSURE_RATE_MIN, CODE_CLOSURE_RATE_MAX, false);
 
   return violationScore * 0.6 + closureScore * 0.4;
 }
@@ -225,8 +255,11 @@ function computeComponentTrends(raw: DistrictRawData): import("../data/types").C
   const resRate = raw.requests311Total > 0 ? raw.requests311Resolved / raw.requests311Total : 0.7;
   const services = Math.max(-0.5, Math.min(0.5, (resRate - 0.70) * 1.5));
 
-  // Code: closure rate vs 60% baseline
-  const code = Math.max(-0.5, Math.min(0.5, (raw.codeViolationsClosedRate - 0.60) * 1.5));
+  // Code: closure rate vs city-median baseline (26%) instead of the aspirational 60% target.
+  // The 60% target caused every district to clamp at ▼ 50% — the live city-wide median
+  // creates genuine directional differentiation (above median = ▲, below = ▼).
+  // Multiplier 3.0 with the tighter baseline produces proportional spread across the live range.
+  const code = Math.max(-0.5, Math.min(0.5, (raw.codeViolationsClosedRate - CODE_CLOSURE_RATE_CITY_MEDIAN) * 3.0));
 
   // Community: no meaningful short-term trend for static infrastructure
   const community = 0;
