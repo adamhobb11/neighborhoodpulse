@@ -866,24 +866,60 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Generate Council Briefing — action card */}
+              {/* Council Briefing — unified card (button + result) */}
               <div className="mb-4 rounded-xl border border-slate-200 overflow-hidden">
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                   <div className="text-[10px] font-bold text-slate-400 tracking-widest">COUNCIL BRIEFING</div>
+                  {!briefingLoading && briefing && (
+                    <button onClick={() => {
+                      if (!selected) return;
+                      setBriefing(null);
+                      setBriefingLoading(true);
+                      fetch("/api/briefing", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ district: selected.district, scores: selected.scores, raw: selected.raw }),
+                      }).then(r => r.json()).then(d => setBriefing(d.briefing)).catch(console.error).finally(() => setBriefingLoading(false));
+                    }} className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold">↺ Regenerate</button>
+                  )}
                 </div>
                 <div className="px-4 py-3.5">
                   {briefingLoading ? (
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-3.5 h-3.5 border-2 border-blue-700 border-t-transparent rounded-full animate-spin shrink-0" />
-                      <span className="text-xs text-slate-500 font-medium">Generating briefing…</span>
+                    <div className="space-y-2 animate-pulse py-1">
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="w-3.5 h-3.5 border-2 border-blue-700 border-t-transparent rounded-full animate-spin shrink-0" />
+                        <span className="text-xs text-slate-500 font-medium">Generating briefing…</span>
+                      </div>
+                      <div className="h-3 bg-slate-100 rounded-full w-full" />
+                      <div className="h-3 bg-slate-100 rounded-full w-5/6" />
+                      <div className="h-3 bg-slate-100 rounded-full w-4/6" />
+                      <div className="h-3 bg-slate-100 rounded-full w-full mt-3" />
+                      <div className="h-3 bg-slate-100 rounded-full w-3/4" />
                     </div>
                   ) : briefing ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                        <span className="text-xs font-semibold text-slate-700">Council briefing ready</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400">↓ Scroll to view</span>
+                    <div className="animate-fadein">
+                      {briefing.alert && (
+                        <div className={`p-2.5 rounded-lg text-[11px] font-semibold mb-3 animate-pulse-glow ${briefing.alert.includes("PRIORITY") ? "bg-red-50 border border-red-200 text-red-700" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
+                          {briefing.alert}
+                        </div>
+                      )}
+                      <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-1.5">OVERVIEW</div>
+                      <p className="text-xs text-slate-600 leading-relaxed mb-3">{briefing.summary}</p>
+                      <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-1.5">RECOMMENDATION</div>
+                      <p className="text-xs text-slate-700 leading-relaxed mb-3">{briefing.recommendation}</p>
+                      {briefing.actions && briefing.actions.length > 0 && (
+                        <>
+                          <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-1.5">SUGGESTED ACTIONS</div>
+                          <ol className="space-y-2">
+                            {briefing.actions.map((a, i) => (
+                              <li key={i} className="flex gap-2 text-xs text-slate-700 leading-snug">
+                                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                                <span>{a}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col gap-2.5">
@@ -955,66 +991,6 @@ export default function Dashboard() {
                   context={`Parks · Community Centers · Emergency Stations · ${selected.raw.schools} schools · ${selected.raw.pharmacies} pharmacies · ${selected.raw.shelters} shelters`} />
               </div>
 
-              {/* Council Briefing output */}
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                  <div className="text-[10px] font-bold text-slate-400 tracking-widest">COUNCIL BRIEFING</div>
-                  {!briefingLoading && briefing && (
-                    <button onClick={() => {
-                      if (!selected) return;
-                      setBriefing(null);
-                      setBriefingLoading(true);
-                      fetch("/api/briefing", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ district: selected.district, scores: selected.scores, raw: selected.raw }),
-                      }).then(r => r.json()).then(d => setBriefing(d.briefing)).catch(console.error).finally(() => setBriefingLoading(false));
-                    }} className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold">↺ Regenerate</button>
-                  )}
-                </div>
-                <div className="p-4">
-                  {briefingLoading ? (
-                    <div className="space-y-2 animate-pulse">
-                      <div className="h-3 bg-slate-100 rounded-full w-full" />
-                      <div className="h-3 bg-slate-100 rounded-full w-5/6" />
-                      <div className="h-3 bg-slate-100 rounded-full w-4/6" />
-                      <div className="h-3 bg-slate-100 rounded-full w-full mt-3" />
-                      <div className="h-3 bg-slate-100 rounded-full w-3/4" />
-                    </div>
-                  ) : briefing ? (
-                    <div className="animate-fadein">
-                      {briefing.alert && (
-                        <div className={`p-2.5 rounded-lg text-[11px] font-semibold mb-3 animate-pulse-glow ${briefing.alert.includes("PRIORITY") ? "bg-red-50 border border-red-200 text-red-700" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
-                          {briefing.alert}
-                        </div>
-                      )}
-                      <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-1.5">OVERVIEW</div>
-                      <p className="text-xs text-slate-600 leading-relaxed mb-3">{briefing.summary}</p>
-                      <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-1.5">RECOMMENDATION</div>
-                      <p className="text-xs text-slate-700 leading-relaxed mb-3">{briefing.recommendation}</p>
-                      {briefing.actions && briefing.actions.length > 0 && (
-                        <>
-                          <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-1.5">SUGGESTED ACTIONS</div>
-                          <ol className="space-y-2">
-                            {briefing.actions.map((a, i) => (
-                              <li key={i} className="flex gap-2 text-xs text-slate-700 leading-snug">
-                                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                                <span>{a}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-5 gap-1">
-                      <div className="text-[10px] text-slate-400 text-center leading-snug">
-                        Use the <span className="font-semibold text-slate-500">Generate Council Briefing</span> button above to run the analysis.
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center p-10 text-center">
