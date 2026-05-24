@@ -151,6 +151,7 @@ function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, popul
   expanded: boolean; onToggle: () => void;
 }) {
   const color = getScoreColor(score);
+  const { gradStart, gradEnd } = GAUGE_STYLES[getScoreLabel(score)] ?? GAUGE_STYLES["Stable"];
   const hasTrend = trend !== undefined && trend !== 0;
   const trendPct = hasTrend ? (Math.abs(trend!) * 100).toFixed(1) : null;
   const improving = (trend ?? 0) > 0;
@@ -176,7 +177,7 @@ function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, popul
           <span className="text-xs font-semibold text-slate-700 tracking-wide">{icon} {label}</span>
           <div className="flex items-center gap-1.5">
             {hasTrend && (
-              <span className={`text-[10px] font-bold ${improving ? "text-emerald-600" : "text-red-500"} ${significant && !improving ? "bg-red-50 px-1 rounded" : ""}`}>
+              <span className={`text-[10px] font-bold ${improving ? "text-emerald-500" : "text-rose-400"} ${significant && !improving ? "bg-rose-50 px-1 rounded" : ""}`}>
                 {improving ? "▲" : "▼"} {trendPct}%
               </span>
             )}
@@ -184,8 +185,9 @@ function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, popul
             <span className="text-slate-300 text-[11px]">{expanded ? "▾" : "▸"}</span>
           </div>
         </div>
-        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div className="score-bar-fill h-full rounded-full" style={{ width: `${score}%`, backgroundColor: color }} />
+        <div className="w-full h-2 bg-slate-100/70 rounded-full overflow-hidden">
+          <div className="score-bar-fill h-full rounded-full"
+            style={{ width: `${score}%`, background: `linear-gradient(to right, ${gradStart}, ${gradEnd})` }} />
         </div>
       </div>
 
@@ -345,12 +347,12 @@ function SemiGauge({ score, label }: { score: number; label: keyof typeof GAUGE_
         className="score-ring"
       />
       {/* Score number */}
-      <text x="100" y="79" textAnchor="middle" dominantBaseline="middle"
-        fontSize="42" fontWeight="800" fontFamily="'DM Mono', monospace" fill={textColor}>
+      <text x="100" y="75" textAnchor="middle" dominantBaseline="middle"
+        fontSize="44" fontWeight="800" fontFamily="'DM Mono', monospace" fill={textColor}>
         {score}
       </text>
-      {/* /100 label */}
-      <text x="100" y="97" textAnchor="middle" dominantBaseline="middle"
+      {/* /100 label — extra breathing room below score */}
+      <text x="100" y="99" textAnchor="middle" dominantBaseline="middle"
         fontSize="11" fontWeight="600" fontFamily="'DM Sans', sans-serif" fill="#94a3b8" letterSpacing="2">
         /100
       </text>
@@ -919,10 +921,6 @@ export default function Dashboard() {
                   })()}
                 </div>
 
-                {/* Interpretation line */}
-                <div className="text-[11px] text-slate-400 leading-snug">
-                  {INTERPRETATIONS[selected.scores.label]}
-                </div>
               </div>
 
               {/* Council Briefing — unified card (button + result) */}
