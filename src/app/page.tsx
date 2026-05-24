@@ -150,8 +150,7 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
   raw: DistrictRawData; population: number;
   expanded: boolean; onToggle: () => void;
 }) {
-  const color = getScoreColor(score);
-  const { gradStart, gradEnd } = GAUGE_STYLES[getScoreLabel(score)] ?? GAUGE_STYLES["Stable"];
+  const { gradStart, gradEnd, textColor } = GAUGE_STYLES[getScoreLabel(score)] ?? GAUGE_STYLES["Stable"];
   const hasTrend = trend !== undefined && trend !== 0;
   const trendPct = hasTrend ? (Math.abs(trend!) * 100).toFixed(1) : null;
   const improving = (trend ?? 0) > 0;
@@ -194,8 +193,8 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
                 {improving ? "▲" : "▼"} {trendPct}%
               </span>
             )}
-            <span className="text-sm font-bold font-mono" style={{ color }}>{score}</span>
-            <span className="text-slate-300 text-[11px]">{expanded ? "▾" : "▸"}</span>
+            <span className="text-sm font-bold font-mono" style={{ color: textColor }}>{score}</span>
+            <span className="text-slate-400 text-[11px]">{expanded ? "▾" : "▸"}</span>
           </div>
         </div>
         {/* Progress bar */}
@@ -1042,11 +1041,10 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Component scores — click any row to expand breakdown */}
-              <div className="bg-white rounded-xl px-4 pt-4 pb-2 mb-4 border border-slate-200">
-                <div className="flex items-center justify-between mb-3">
+              {/* Component scores */}
+              <div className="bg-white rounded-xl px-4 pt-4 pb-3 mb-4 border border-slate-200">
+                <div className="mb-3">
                   <div className="text-[10px] font-bold text-slate-400 tracking-widest">COMPONENT SCORES</div>
-                  <div className="text-[10px] text-slate-400">Click row to expand ▸</div>
                 </div>
                 {([
                   { key: "safety" as const, label: "Public Safety", score: selected.scores.safety, trend: selected.scores.trends.safety },
@@ -1062,7 +1060,6 @@ export default function Dashboard() {
                     onToggle={() => setExpandedComponent(prev => prev === c.key ? null : c.key)}
                   />
                 ))}
-                <div className="text-[10px] text-slate-400 mt-2 border-t border-slate-100 pt-2">▲/▼ = score trend vs. prior period · &gt;10% decline highlighted in red</div>
               </div>
 
               {/* Source data */}
