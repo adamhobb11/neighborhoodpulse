@@ -831,19 +831,24 @@ export default function Dashboard() {
                   return (
                     <div key={district.id}
                       onClick={() => { setSelectedId(district.id); setBriefing(null); }}
-                      className={`flex items-center gap-2 py-1 pl-2 pr-1.5 rounded-md cursor-pointer transition-all select-none mb-0.5
+                      className={`flex items-center gap-2 py-1.5 pl-2 pr-1.5 rounded-md cursor-pointer transition-all select-none mb-0.5
                         ${isSelected ? "bg-slate-100/90" : "hover:bg-slate-50"}`}
                       style={{ borderLeft: `2px solid ${isSelected ? distColor : "transparent"}` }}>
-                      {/* District color dot — matches map polygon */}
-                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: distColor }} />
-                      {/* Name */}
-                      <span className={`text-[10px] leading-tight flex-1 min-w-0 truncate
-                        ${isSelected ? "font-semibold text-slate-800" : "font-medium text-slate-500"}`}>
-                        <span className="font-mono">D{district.id}</span>
-                        <span className="text-slate-300 mx-1">·</span>
-                        {district.area.split("/")[0].trim()}
-                      </span>
-                      {/* Score — colored by health status */}
+                      {/* Softened district dot — smaller, reduced opacity for orientation not dominance */}
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: distColor, opacity: 0.6 }} />
+                      {/* Name hierarchy: district code is secondary metadata, area name is primary */}
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className={`text-[10px] leading-snug truncate
+                          ${isSelected ? "font-semibold text-slate-800" : "font-medium text-slate-600"}`}>
+                          <span className={`text-[9px] font-mono font-normal mr-1
+                            ${isSelected ? "text-slate-500" : "text-slate-400"}`}>
+                            D{district.id}
+                          </span>
+                          {district.area.split("/")[0].trim()}
+                        </div>
+                      </div>
+                      {/* Score — color and size unchanged */}
                       <span className="text-[10px] font-bold font-mono shrink-0 ml-1"
                         style={{ color: scoreColor }}>
                         {scores.overall}
