@@ -948,23 +948,9 @@ export default function Dashboard() {
               </div>
 
               {/* Council Briefing — unified card (button + result) */}
-              <div className="mb-4 rounded-xl border border-slate-200 overflow-hidden">
-                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                  <div className="text-[10px] font-bold text-slate-400 tracking-widest">COUNCIL BRIEFING</div>
-                  {!briefingLoading && briefing && (
-                    <button onClick={() => {
-                      if (!selected) return;
-                      setBriefing(null);
-                      setBriefingLoading(true);
-                      fetch("/api/briefing", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ district: selected.district, scores: selected.scores, raw: selected.raw }),
-                      }).then(r => r.json()).then(d => setBriefing(d.briefing)).catch(console.error).finally(() => setBriefingLoading(false));
-                    }} className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold">↺ Regenerate</button>
-                  )}
-                </div>
-                <div className="px-4 py-3.5">
+              {/* Council Briefing — headerless action card */}
+              <div className="mb-4 rounded-xl border border-slate-200">
+                <div className="px-4 py-4">
                   {briefingLoading ? (
                     <div className="space-y-2 animate-pulse py-1">
                       <div className="flex items-center gap-2.5 mb-3">
@@ -979,6 +965,19 @@ export default function Dashboard() {
                     </div>
                   ) : briefing ? (
                     <div className="animate-fadein">
+                      {/* Regenerate — inline, right-aligned, no card header needed */}
+                      <div className="flex justify-end mb-2">
+                        <button onClick={() => {
+                          if (!selected) return;
+                          setBriefing(null);
+                          setBriefingLoading(true);
+                          fetch("/api/briefing", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ district: selected.district, scores: selected.scores, raw: selected.raw }),
+                          }).then(r => r.json()).then(d => setBriefing(d.briefing)).catch(console.error).finally(() => setBriefingLoading(false));
+                        }} className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold">↺ Regenerate</button>
+                      </div>
                       {briefing.alert && (
                         <div className={`p-2.5 rounded-lg text-[11px] font-semibold mb-3 animate-pulse-glow ${briefing.alert.includes("PRIORITY") ? "bg-red-50 border border-red-200 text-red-700" : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
                           {briefing.alert}
