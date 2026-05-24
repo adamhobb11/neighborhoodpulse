@@ -144,8 +144,8 @@ const COMPONENT_INDEX_WEIGHT: Record<keyof ComponentScores, number> = {
   safety: 25, economic: 20, services: 20, code: 20, community: 15,
 };
 
-function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, population, expanded, onToggle }: {
-  label: string; score: number; icon: string; trend?: number;
+function ComponentScoreRow({ label, score, trend, componentKey, raw, population, expanded, onToggle }: {
+  label: string; score: number; trend?: number;
   componentKey: keyof ComponentScores;
   raw: DistrictRawData; population: number;
   expanded: boolean; onToggle: () => void;
@@ -169,12 +169,25 @@ function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, popul
     ? `+${Math.min(Math.abs(fireTrendPct / 100) * 40, 12).toFixed(1)} pts (improving)`
     : `-${Math.min(Math.abs(fireTrendPct / 100) * 40, 12).toFixed(1)} pts (worsening)`;
 
+  const iconSrc = COMPONENT_ICONS[componentKey];
+
   return (
-    <div className="mb-1.5">
+    <div className="mb-2">
       <div onClick={onToggle}
         className={`cursor-pointer rounded-lg px-2 py-2 -mx-2 transition-colors select-none ${expanded ? "bg-blue-50/60" : "hover:bg-slate-50"}`}>
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-xs font-semibold text-slate-700 tracking-wide">{icon} {label}</span>
+        {/* Top row: icon + label left, trend + score + chevron right */}
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-2.5">
+            {/* Icon container — white bg so PNG white blends, multiply hides it on hover */}
+            <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 p-1">
+              {iconSrc && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={iconSrc} alt={label} className="w-full h-full object-contain"
+                  style={{ mixBlendMode: "multiply", opacity: 0.72 }} />
+              )}
+            </div>
+            <span className="text-xs font-semibold text-slate-700 tracking-wide leading-tight">{label}</span>
+          </div>
           <div className="flex items-center gap-1.5">
             {hasTrend && (
               <span className={`text-[10px] font-bold ${improving ? "text-emerald-500" : "text-rose-400"} ${significant && !improving ? "bg-rose-50 px-1 rounded" : ""}`}>
@@ -185,7 +198,8 @@ function ComponentScoreRow({ label, score, icon, trend, componentKey, raw, popul
             <span className="text-slate-300 text-[11px]">{expanded ? "▾" : "▸"}</span>
           </div>
         </div>
-        <div className="w-full h-2 bg-slate-100/70 rounded-full overflow-hidden">
+        {/* Progress bar */}
+        <div className="w-full h-1.5 bg-slate-100/70 rounded-full overflow-hidden">
           <div className="score-bar-fill h-full rounded-full"
             style={{ width: `${score}%`, background: `linear-gradient(to right, ${gradStart}, ${gradEnd})` }} />
         </div>
@@ -313,6 +327,15 @@ const INTERPRETATIONS: Record<string, string> = {
   Watch:     "Showing early signs of concern.",
   "At Risk": "Requires closer monitoring.",
   Critical:  "Immediate attention recommended.",
+};
+
+// ─── Component Score icon paths (public/icons/) ───────────────────────────────
+const COMPONENT_ICONS: Record<string, string> = {
+  safety:    "/icons/avatar.png",
+  economic:  "/icons/economic.png",
+  services:  "/icons/hall.png",
+  code:      "/icons/file.png",
+  community: "/icons/hospital-building.png",
 };
 
 function SemiGauge({ score, label }: { score: number; label: keyof typeof GAUGE_STYLES }) {
@@ -1006,14 +1029,14 @@ export default function Dashboard() {
                   <div className="text-[10px] text-slate-400">Click row to expand ▸</div>
                 </div>
                 {([
-                  { key: "safety" as const, label: "Public Safety", icon: "🛡", score: selected.scores.safety, trend: selected.scores.trends.safety },
-                  { key: "economic" as const, label: "Economic Vitality", icon: "📈", score: selected.scores.economic, trend: selected.scores.trends.economic },
-                  { key: "services" as const, label: "City Services", icon: "🏛", score: selected.scores.services, trend: selected.scores.trends.services },
-                  { key: "code" as const, label: "Code Compliance", icon: "📋", score: selected.scores.code, trend: selected.scores.trends.code },
-                  { key: "community" as const, label: "Community Access", icon: "🏘", score: selected.scores.community, trend: selected.scores.trends.community },
+                  { key: "safety" as const, label: "Public Safety", score: selected.scores.safety, trend: selected.scores.trends.safety },
+                  { key: "economic" as const, label: "Economic Vitality", score: selected.scores.economic, trend: selected.scores.trends.economic },
+                  { key: "services" as const, label: "City Services", score: selected.scores.services, trend: selected.scores.trends.services },
+                  { key: "code" as const, label: "Code Compliance", score: selected.scores.code, trend: selected.scores.trends.code },
+                  { key: "community" as const, label: "Community Access", score: selected.scores.community, trend: selected.scores.trends.community },
                 ]).map(c => (
                   <ComponentScoreRow key={c.key}
-                    label={c.label} score={c.score} icon={c.icon} trend={c.trend}
+                    label={c.label} score={c.score} trend={c.trend}
                     componentKey={c.key} raw={selected.raw} population={selected.district.population}
                     expanded={expandedComponent === c.key}
                     onToggle={() => setExpandedComponent(prev => prev === c.key ? null : c.key)}
