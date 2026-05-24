@@ -163,10 +163,6 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
     ? ((raw.permitsNewConstruction / raw.permits180d) * 100).toFixed(0) : "0";
   const fireTrendPct = raw.fireResponseCountPrev90d > 0
     ? ((raw.fireResponseCount90d - raw.fireResponseCountPrev90d) / raw.fireResponseCountPrev90d * 100) : 0;
-  const fireTrendDir = fireTrendPct > 0 ? "↑" : "↓";
-  const trendAdjust = fireTrendPct < 0
-    ? `+${Math.min(Math.abs(fireTrendPct / 100) * 40, 12).toFixed(1)} pts (improving)`
-    : `-${Math.min(Math.abs(fireTrendPct / 100) * 40, 12).toFixed(1)} pts (worsening)`;
 
   const iconSrc = COMPONENT_ICONS[componentKey];
 
@@ -208,13 +204,14 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
         <div className="mx-0 mt-1 p-3 bg-slate-50 rounded-lg border border-slate-200 animate-fadein">
           {componentKey === "safety" && (<>
             <SectionLabel label="CRIME INCIDENTS — weight: 40%" />
+            {/* Crime data sourced from CrimeMapping.com — pending live integration */}
             <div className="space-y-2.5">
-              <BRow label="Violent Crimes (90d)" sub="Homicide, assault, robbery (counted 3×)"
-                value={raw.violentCrimes90d} prev={raw.violentCrimesPrev90d} inverted weight={40} />
-              <BRow label="Property Crimes (90d)" sub="Burglary, auto theft, larceny (counted 2×)"
-                value={raw.propertyCrimes90d} prev={raw.propertyCrimesPrev90d} inverted />
-              <BRow label="Minor Offenses (90d)" sub="Misdemeanor, disorderly conduct (counted 1×)"
-                value={raw.minorOffenses90d} prev={raw.minorOffensesPrev90d} inverted />
+              {(["Violent Crimes (90d)", "Property Crimes (90d)", "Minor Offenses (90d)"] as const).map(lbl => (
+                <div key={lbl} className="flex justify-between items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">{lbl}</span>
+                  <span className="text-[11px] font-medium text-slate-400 italic shrink-0">Data Pending</span>
+                </div>
+              ))}
             </div>
             <SectionLabel label="EMERGENCY RESPONSE — weight: 35%" />
             <BRow label="Fire/EMS Incidents (90d)" sub={`${perCapita(raw.fireResponseCount90d)}/10K residents`}
@@ -223,9 +220,13 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
             <BRow label="Nuisance Reports (90d)" sub="Illegal dumping, blight, pollution complaints"
               value={raw.nuisanceCount90d} inverted weight={10} />
             <SectionLabel label="TREND MODIFIER — weight: 15%" />
-            <BRow label="Fire/EMS Trend"
-              sub={`${Math.abs(fireTrendPct).toFixed(1)}% ${fireTrendPct > 0 ? "increase" : "decrease"} in incidents → score ${fireTrendPct > 0 ? "penalty" : "bonus"}`}
-              value={trendAdjust.split(" ")[0]} weight={15} />
+            {/* Human-readable trend: ▲ = more incidents (worse), ▼ = fewer (better) */}
+            <div className="flex justify-between items-center gap-2 mt-1">
+              <span className="text-xs font-semibold text-slate-700">Fire/EMS Incidents Trend</span>
+              <span className={`text-xs font-bold shrink-0 ${fireTrendPct < 0 ? "text-emerald-500" : "text-rose-400"}`}>
+                {fireTrendPct >= 0 ? "▲" : "▼"} {Math.abs(fireTrendPct).toFixed(1)}% vs prior period
+              </span>
+            </div>
           </>)}
 
           {componentKey === "economic" && (<>
