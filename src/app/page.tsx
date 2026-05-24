@@ -817,20 +817,36 @@ export default function Dashboard() {
           {/* Map — hidden via CSS when list view is active */}
           <div style={{ display: view === "map" ? "block" : "none" }} className="w-full h-full absolute inset-0 z-0">
             <div ref={mapRef} className="w-full h-full" />
-              {/* Legend: district colors */}
+              {/* District Overview — navigation + comparison card */}
               <div className="absolute top-3 right-3 bg-white/96 backdrop-blur-sm rounded-xl shadow-lg p-3 border border-slate-200 z-[1000] max-h-[calc(100%-24px)] overflow-y-auto">
-                <div className="text-[9px] font-bold text-slate-400 tracking-widest mb-2">COUNCIL DISTRICTS</div>
-                {districtData.map(({ district }) => (
-                  <div key={district.id}
-                    onClick={() => { setSelectedId(district.id); setBriefing(null); }}
-                    className="flex items-center gap-2 mb-1.5 cursor-pointer hover:opacity-80 transition-opacity">
-                    <div className="w-3 h-3 rounded-sm shrink-0 border border-white/50"
-                      style={{ backgroundColor: DISTRICT_COLORS[district.id] ?? "#64748b" }} />
-                    <span className="text-[10px] text-slate-600 font-medium leading-tight">
-                      D{district.id} — {district.area.split("/")[0].trim()}
-                    </span>
-                  </div>
-                ))}
+                <div className="text-[9px] font-bold text-slate-400 tracking-widest mb-2">DISTRICT OVERVIEW</div>
+                {districtData.map(({ district, scores }) => {
+                  const isSelected = selectedId === district.id;
+                  const distColor = DISTRICT_COLORS[district.id] ?? "#64748b";
+                  const scoreColor = GAUGE_STYLES[getScoreLabel(scores.overall)]?.textColor ?? "#475569";
+                  return (
+                    <div key={district.id}
+                      onClick={() => { setSelectedId(district.id); setBriefing(null); }}
+                      className={`flex items-center gap-2 py-1 pl-2 pr-1.5 rounded-md cursor-pointer transition-all select-none mb-0.5
+                        ${isSelected ? "bg-slate-100/90" : "hover:bg-slate-50"}`}
+                      style={{ borderLeft: `2px solid ${isSelected ? distColor : "transparent"}` }}>
+                      {/* District color dot — matches map polygon */}
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: distColor }} />
+                      {/* Name */}
+                      <span className={`text-[10px] leading-tight flex-1 min-w-0 truncate
+                        ${isSelected ? "font-semibold text-slate-800" : "font-medium text-slate-500"}`}>
+                        <span className="font-mono">D{district.id}</span>
+                        <span className="text-slate-300 mx-1">·</span>
+                        {district.area.split("/")[0].trim()}
+                      </span>
+                      {/* Score — colored by health status */}
+                      <span className="text-[10px] font-bold font-mono shrink-0 ml-1"
+                        style={{ color: scoreColor }}>
+                        {scores.overall}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               {/* Legend: health status */}
               <div className="absolute bottom-5 left-4 bg-white/96 backdrop-blur-sm rounded-xl shadow-lg p-3 border border-slate-200 z-[1000]">
