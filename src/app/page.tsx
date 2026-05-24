@@ -347,7 +347,7 @@ function SemiGauge({ score, label }: { score: number; label: keyof typeof GAUGE_
   const uid = `gauge-${label.replace(/\s/g, "")}`;
 
   return (
-    <svg viewBox="0 0 200 108" className="w-full max-w-[220px]" aria-label={`Score ${score} out of 100`}>
+    <svg viewBox="0 0 200 114" className="w-full max-w-[220px]" aria-label={`Score ${score} out of 100`}>
       <defs>
         {/* Gradient runs left-to-right along the arc baseline */}
         <linearGradient id={uid} gradientUnits="userSpaceOnUse" x1="18" y1="100" x2="182" y2="100">
@@ -368,13 +368,13 @@ function SemiGauge({ score, label }: { score: number; label: keyof typeof GAUGE_
         strokeDasharray={totalArc} strokeDashoffset={dashOffset}
         className="score-ring"
       />
-      {/* Score number */}
-      <text x="100" y="75" textAnchor="middle" dominantBaseline="middle"
-        fontSize="44" fontWeight="800" fontFamily="'DM Mono', monospace" fill={textColor}>
+      {/* Score number — primary KPI, largest element in the card */}
+      <text x="100" y="73" textAnchor="middle" dominantBaseline="middle"
+        fontSize="52" fontWeight="800" fontFamily="'DM Mono', monospace" fill={textColor}>
         {score}
       </text>
-      {/* /100 label — extra breathing room below score */}
-      <text x="100" y="99" textAnchor="middle" dominantBaseline="middle"
+      {/* /100 label — extra vertical gap so it breathes below the score */}
+      <text x="100" y="104" textAnchor="middle" dominantBaseline="middle"
         fontSize="11" fontWeight="600" fontFamily="'DM Sans', sans-serif" fill="#94a3b8" letterSpacing="2">
         /100
       </text>
@@ -898,30 +898,25 @@ export default function Dashboard() {
           {selected ? (
             <div className="p-5 animate-fadein">
               {/* District Health Summary Card */}
-              <div className="mb-5 bg-white rounded-xl pt-5 pb-4 px-5 border border-slate-200 shadow-sm text-center">
-                {/* District name + meta */}
-                <div className="text-base font-bold text-slate-900 leading-tight">{selected.district.name}</div>
-                <div className="text-xs text-slate-400 mt-0.5 mb-3">
+              <div className="mb-5 bg-white rounded-xl pt-4 pb-6 px-5 border border-slate-200 shadow-sm text-center">
+                {/* District name — slightly reduced to give score more dominance */}
+                <div className="text-sm font-semibold text-slate-800 leading-tight">{selected.district.name}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5 mb-1">
                   {selected.district.area} &middot; Pop.&nbsp;{selected.district.population.toLocaleString()}
                 </div>
 
-                {/* Semi-circle gauge */}
+                {/* Semi-circle gauge — pulled closer to the header */}
                 <div className="flex justify-center">
                   <SemiGauge score={selected.scores.overall} label={selected.scores.label} />
                 </div>
 
-                {/* Section label */}
-                <div className="text-[10px] font-bold text-slate-400 tracking-widest -mt-1 mb-3">
-                  DISTRICT HEALTH INDEX
-                </div>
+                {/* ── Hierarchy: actionable insight first, metadata label last ── */}
 
-                {/* Status badge + trend */}
-                <div className="flex items-center justify-center gap-2.5 flex-wrap mb-2">
-                  {/* Premium pill badge */}
+                {/* 1. Status badge + trend (primary decision context) */}
+                <div className="flex items-center justify-center gap-2.5 flex-wrap mt-1 mb-2.5">
                   <span className={`text-xs font-bold px-3.5 py-1 rounded-full ${BADGE_STYLES[selected.scores.label]}`}>
                     {selected.scores.label}
                   </span>
-                  {/* Trend — preserved exactly */}
                   {(() => {
                     const prior = selected.raw.priorOverallScore;
                     let up: boolean;
@@ -946,6 +941,10 @@ export default function Dashboard() {
                   })()}
                 </div>
 
+                {/* 2. Section label (descriptive metadata — subordinate) */}
+                <div className="text-[9px] font-bold text-slate-300 tracking-widest">
+                  DISTRICT HEALTH INDEX
+                </div>
               </div>
 
               {/* Council Briefing — unified card (button + result) */}
