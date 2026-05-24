@@ -832,24 +832,27 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-              {/* Legend: health score circles */}
+              {/* Legend: health status */}
               <div className="absolute bottom-5 left-4 bg-white/96 backdrop-blur-sm rounded-xl shadow-lg p-3 border border-slate-200 z-[1000]">
-                <div className="text-[9px] font-bold text-slate-400 tracking-widest mb-1.5">HEALTH SCORE CIRCLES</div>
-                <div className="text-[9px] text-slate-400 mb-2 leading-snug">Score 0–100 · Higher is better</div>
-                {[
-                  { l: "75+ Thriving", c: "#059669" },
-                  { l: "60–74 Stable", c: "#0d9488" },
-                  { l: "45–59 Watch", c: "#d97706" },
-                  { l: "30–44 At Risk", c: "#ea580c" },
-                  { l: "0–29 Critical", c: "#dc2626" },
-                ].map(({ l, c }) => (
-                  <div key={l} className="flex items-center gap-2 mb-1">
-                    <div className="w-3.5 h-3.5 rounded-full border-2 shrink-0 bg-white"
-                      style={{ borderColor: c }} />
-                    <span className="text-[10px] text-slate-600 font-medium">{l}</span>
-                  </div>
-                ))}
-                <div className="text-[9px] text-slate-400 mt-2 border-t border-slate-100 pt-2">Click any district to explore</div>
+                <div className="text-[9px] font-bold text-slate-400 tracking-widest mb-1.5">DISTRICT HEALTH STATUS</div>
+                <div className="text-[9px] text-slate-400 mb-2.5 leading-snug">District performance classification</div>
+                {([
+                  { label: "Thriving", range: "75–100" },
+                  { label: "Stable",   range: "60–74"  },
+                  { label: "Watch",    range: "45–59"  },
+                  { label: "At Risk",  range: "0–44"   },
+                ] as Array<{ label: string; range: string }>).map(({ label, range }) => {
+                  const gs = GAUGE_STYLES[label] ?? GAUGE_STYLES["Stable"];
+                  return (
+                    <div key={label} className="flex items-center gap-2 mb-1.5">
+                      <div className="w-3.5 h-3.5 rounded-full shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${gs.gradStart}, ${gs.gradEnd})` }} />
+                      <span className="text-[10px] font-semibold text-slate-700 leading-tight">
+                        {label} <span className="font-normal text-slate-400">— {range}</span>
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
           </div>
           {/* List view — solid white, completely covers the map */}
