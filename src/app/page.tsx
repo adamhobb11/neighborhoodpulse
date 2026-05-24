@@ -895,7 +895,7 @@ export default function Dashboard() {
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ district: selected.district, scores: selected.scores, raw: selected.raw }),
                         }).then(r => r.json()).then(d => setBriefing(d.briefing)).catch(console.error).finally(() => setBriefingLoading(false));
-                      }} className="w-full py-2.5 bg-[#1e3a5f] hover:bg-[#2a4f7a] text-white text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                      }} className="briefing-cta w-full py-3 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2">
                         ✦ Generate Council Briefing
                       </button>
                       <div className="text-[10px] text-slate-400 text-center leading-snug">
