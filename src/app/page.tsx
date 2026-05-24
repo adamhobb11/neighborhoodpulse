@@ -127,8 +127,8 @@ function BRow({ label, sub, value, prev, inverted, weight, gap }: {
         )}
       </div>
       <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
-        <div className={`text-sm font-bold font-mono ${value === 0 && gap === undefined ? "text-amber-600" : "text-slate-800"}`}>
-          {value}{value === 0 ? " ⚠" : ""}
+        <div className="text-sm font-bold font-mono text-slate-800">
+          {value}
         </div>
         {weight !== undefined && <div className="text-[10px] text-slate-400">wt {weight}%</div>}
       </div>
@@ -291,7 +291,6 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
             <BRow label="Pharmacies" value={raw.pharmacies} weight={10} />
             <SectionLabel label="EMERGENCY PREP — weight: 10%" />
             <BRow label="Tornado Shelters" value={raw.shelters} weight={10} />
-            <div className="text-[9px] text-amber-600 mt-2 pt-2 border-t border-slate-200">⚠ = zero resources identified. These are static counts — no trend arrows.</div>
           </>)}
 
           <div className="mt-3 pt-2 border-t border-slate-200 text-[10px] text-slate-500">
