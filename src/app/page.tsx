@@ -857,10 +857,9 @@ export default function Dashboard() {
                   );
                 })}
               </div>
-              {/* Legend: health status */}
-              <div className="absolute bottom-5 left-4 bg-white/96 backdrop-blur-sm rounded-xl shadow-lg p-3 border border-slate-200 z-[1000]">
+              {/* Legend: health status — intentionally low visual weight */}
+              <div className="absolute bottom-5 left-4 bg-white/96 backdrop-blur-sm rounded-xl shadow-lg p-2.5 border border-slate-200 z-[1000]">
                 <div className="text-[9px] font-bold text-slate-400 tracking-widest mb-1.5">DISTRICT HEALTH STATUS</div>
-                <div className="text-[9px] text-slate-400 mb-2.5 leading-snug">District performance classification</div>
                 {([
                   { label: "Thriving", range: "75–100" },
                   { label: "Stable",   range: "60–74"  },
@@ -869,11 +868,13 @@ export default function Dashboard() {
                 ] as Array<{ label: string; range: string }>).map(({ label, range }) => {
                   const gs = GAUGE_STYLES[label] ?? GAUGE_STYLES["Stable"];
                   return (
-                    <div key={label} className="flex items-center gap-2 mb-1.5">
-                      <div className="w-3.5 h-3.5 rounded-full shrink-0"
-                        style={{ background: `linear-gradient(135deg, ${gs.gradStart}, ${gs.gradEnd})` }} />
-                      <span className="text-[10px] font-semibold text-slate-700 leading-tight">
-                        {label} <span className="font-normal text-slate-400">— {range}</span>
+                    <div key={label} className="flex items-center gap-1.5 mb-1">
+                      {/* Dot: ~30% smaller than before, softened opacity */}
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${gs.gradStart}, ${gs.gradEnd})`, opacity: 0.7 }} />
+                      <span className="text-[10px] font-semibold text-slate-600 leading-tight">
+                        {label}
+                        <span className="font-normal text-[9px] text-slate-400 ml-1">· {range}</span>
                       </span>
                     </div>
                   );
