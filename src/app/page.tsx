@@ -208,7 +208,7 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
             <SectionLabel label="CRIME INCIDENTS — weight: 40%" />
             {/* Crime data sourced from CrimeMapping.com — pending live integration */}
             <div className="space-y-2.5">
-              {(["Violent Crimes (90d)", "Property Crimes (90d)", "Minor Offenses (90d)"] as const).map(lbl => (
+              {(["Violent Crimes", "Property Crimes", "Minor Offenses"] as const).map(lbl => (
                 <div key={lbl} className="flex justify-between items-center gap-2">
                   <span className="text-xs font-semibold text-slate-700">{lbl}</span>
                   <span className="text-[11px] font-medium text-slate-400 italic shrink-0">Data Pending</span>
@@ -216,10 +216,10 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
               ))}
             </div>
             <SectionLabel label="EMERGENCY RESPONSE — weight: 35%" />
-            <BRow label="Fire/EMS Incidents (90d)" sub={`${perCapita(raw.fireResponseCount90d)}/10K residents`}
+            <BRow label="Fire/EMS Incidents" sub={`${perCapita(raw.fireResponseCount90d)}/10K residents · most recent available records`}
               value={raw.fireResponseCount90d} prev={raw.fireResponseCountPrev90d} inverted weight={35} />
             <SectionLabel label="ENVIRONMENTAL — weight: 10%" />
-            <BRow label="Nuisance Reports (90d)" sub="Illegal dumping, blight, pollution complaints"
+            <BRow label="Nuisance Reports" sub="Illegal dumping, blight, pollution complaints"
               value={raw.nuisanceCount90d} inverted weight={10} />
             <SectionLabel label="TREND MODIFIER — weight: 15%" />
             <div className="flex justify-between items-center gap-2 mt-1">
@@ -264,7 +264,7 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
                 prev={raw.requests311TotalPrev || undefined} inverted />
             </div>
             <SectionLabel label="RESPONSE SPEED — weight: 45%" />
-            <BRow label="Avg Resolution Time" sub={`Target: ≤ 7 days · Currently ${raw.avgResolutionDays > 7 ? "above" : "on"} target`}
+            <BRow label="Avg Resolution Time" sub="Fewer days to resolve a request = higher score"
               value={`${raw.avgResolutionDays}d`} prev={raw.avgResolutionDaysPrev || undefined} inverted weight={45} />
           </>)}
 
@@ -1089,10 +1089,10 @@ export default function Dashboard() {
               {/* Source data */}
               <div className="bg-white rounded-xl p-4 mb-4 border border-slate-200">
                 <div className="text-[10px] font-bold text-slate-400 tracking-widest mb-1">SOURCE DATA</div>
-                <DataRow label="Fire/EMS Incidents (90d)"
+                <DataRow label="Fire/EMS Incidents"
                   value={selected.raw.fireResponseCount90d}
-                  context={`Prev. 90d: ${selected.raw.fireResponseCountPrev90d} · ${selected.raw.fireResponseCount90d > selected.raw.fireResponseCountPrev90d ? "↑" : "↓"} ${Math.abs(((selected.raw.fireResponseCount90d - selected.raw.fireResponseCountPrev90d) / Math.max(1, selected.raw.fireResponseCountPrev90d)) * 100).toFixed(1)}% vs. prior quarter`} />
-                <DataRow label="Env. Nuisance Reports (90d)"
+                  context={`Prior period: ${selected.raw.fireResponseCountPrev90d} · ${selected.raw.fireResponseCount90d > selected.raw.fireResponseCountPrev90d ? "↑" : "↓"} ${Math.abs(((selected.raw.fireResponseCount90d - selected.raw.fireResponseCountPrev90d) / Math.max(1, selected.raw.fireResponseCountPrev90d)) * 100).toFixed(1)}% period-over-period · Based on most recent available records`} />
+                <DataRow label="Env. Nuisance Reports"
                   value={selected.raw.nuisanceCount90d}
                   context="Reports of blight, illegal dumping, or code-adjacent nuisance conditions" />
                 <DataRow label="Construction Permits (180d)"
