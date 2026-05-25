@@ -1,1 +1,112 @@
-{}
+{
+  "2026-Q2": [
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 1,
+      "overall": 75,
+      "safety": 81,
+      "economic": 74,
+      "services": 85,
+      "code": 79,
+      "community": 50,
+      "label": "Thriving"
+    },
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 2,
+      "overall": 77,
+      "safety": 81,
+      "economic": 62,
+      "services": 89,
+      "code": 76,
+      "community": 75,
+      "label": "Thriving"
+    },
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 3,
+      "overall": 68,
+      "safety": 60,
+      "economic": 62,
+      "services": 83,
+      "code": 53,
+      "community": 86,
+      "label": "Stable"
+    },
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 4,
+      "overall": 56,
+      "safety": 55,
+      "economic": 55,
+      "services": 76,
+      "code": 21,
+      "community": 79,
+      "label": "Watch"
+    },
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 5,
+      "overall": 68,
+      "safety": 65,
+      "economic": 63,
+      "services": 77,
+      "code": 68,
+      "community": 68,
+      "label": "Stable"
+    },
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 6,
+      "overall": 71,
+      "safety": 73,
+      "economic": 78,
+      "services": 79,
+      "code": 70,
+      "community": 47,
+      "label": "Stable"
+    },
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 7,
+      "overall": 64,
+      "safety": 64,
+      "economic": 65,
+      "services": 74,
+      "code": 37,
+      "community": 86,
+      "label": "Stable"
+    },
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 8,
+      "overall": 70,
+      "safety": 78,
+      "economic": 84,
+      "services": 63,
+      "code": 72,
+      "community": 44,
+      "label": "Stable"
+    },
+    {
+      "quarter": "2026-Q2",
+      "snapshotDate": "2026-05-25T00:15:53.790Z",
+      "districtId": 9,
+      "overall": 72,
+      "safety": 76,
+      "economic": 74,
+      "services": 63,
+      "code": 81,
+      "community": 63,
+      "label": "Stable"
+    }
+  ]
+}
