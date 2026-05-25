@@ -33,13 +33,14 @@ const METHODOLOGY = [
     label: "Public Safety",
     icon: "🛡",
     weight: 25,
-    dataSource: "Fire/EMS response incidents and environmental nuisance reports from Montgomery's ArcGIS Open Data Portal",
+    dataSource: "Fire/EMS response incidents and environmental nuisance reports from Montgomery's Open Data Portal. Crime incident data (40% of this component) is pending live integration.",
     subFactors: [
-      { name: "Incident rate per 10k residents", pct: 60 },
-      { name: "Trend vs. prior 90-day period", pct: 25 },
-      { name: "Environmental nuisance density", pct: 15 },
+      { name: "Crime incidents, severity-weighted (pending live data)", pct: 40 },
+      { name: "Fire/EMS response incidents per capita", pct: 35 },
+      { name: "Fire/EMS period-over-period trend", pct: 15 },
+      { name: "Environmental nuisance density", pct: 10 },
     ],
-    plain: "Higher score = fewer emergency incidents per capita with an improving trend. Districts with rising incident volumes or high nuisance density score lower.",
+    plain: "Higher score = fewer Fire/EMS responses and nuisance reports per capita, with an improving trend. Crime incident scoring (40%) will activate once that data feed is connected.",
   },
   {
     key: "economic" as keyof ComponentScores,
@@ -52,14 +53,14 @@ const METHODOLOGY = [
       { name: "New vs. renovation construction ratio", pct: 25 },
       { name: "New business license growth", pct: 30 },
     ],
-    plain: "Higher score = more construction investment and business growth, indicating economic health and investor confidence in the neighborhood.",
+    plain: "Higher score = more construction investment and business growth, indicating economic health and investor confidence in the district.",
   },
   {
     key: "services" as keyof ComponentScores,
     label: "City Services Responsiveness",
     icon: "🏛",
     weight: 20,
-    dataSource: "311 Service Request resolution rate and average days to close, from Montgomery's 311 system",
+    dataSource: "311 Service Request resolution rate and average days to resolve, from Montgomery's 311 system",
     subFactors: [
       { name: "Resolution rate (% of requests closed)", pct: 55 },
       { name: "Average time to resolution", pct: 45 },
@@ -76,7 +77,7 @@ const METHODOLOGY = [
       { name: "Open violations per capita (inverted)", pct: 60 },
       { name: "Closure rate — enforcement effectiveness", pct: 40 },
     ],
-    plain: "Higher score = fewer unresolved violations and stronger enforcement follow-through. Open violations correlate with visible neighborhood deterioration and reduced property values.",
+    plain: "Higher score = fewer unresolved violations and stronger enforcement follow-through. Unresolved violations correlate with visible blight and reduced property values across the district.",
   },
   {
     key: "community" as keyof ComponentScores,
@@ -408,7 +409,7 @@ function MethodologyModal({ onClose }: { onClose: () => void }) {
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div>
             <div className="text-lg font-bold text-slate-900">Scoring Methodology</div>
-            <div className="text-xs text-slate-500 mt-0.5">How the Neighborhood Health Index is calculated</div>
+            <div className="text-xs text-slate-500 mt-0.5">How the District Health Index is calculated</div>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 text-lg">×</button>
         </div>
@@ -419,7 +420,10 @@ function MethodologyModal({ onClose }: { onClose: () => void }) {
               Health Index = Safety(25%) + Economic(20%) + Services(20%) + Code(20%) + Community(15%)
             </div>
             <div className="text-xs text-blue-600 mt-2">
-              Normalization: Rolling baseline — each district is scored relative to Montgomery&apos;s own city-wide min/max range, making scores immune to macro conditions and seasonal variations.
+              Normalization: Each component score is normalized against fixed reference bounds calibrated from Montgomery&apos;s own data range. A district&apos;s score reflects its performance relative to other Montgomery districts — not a fixed national benchmark. Weights are adjustable to reflect the city&apos;s current priorities.
+            </div>
+            <div className="text-xs text-blue-600 mt-1.5 border-t border-blue-200 pt-1.5">
+              Trend indicators (▲/▼) compare current scores to the prior quarter&apos;s snapshot. The Q2 2026 baseline was captured on May 25, 2026 — quarter-over-quarter comparisons will appear automatically starting Q3 2026.
             </div>
           </div>
           {METHODOLOGY.map(m => (
