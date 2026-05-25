@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import type { DistrictData, AIBriefing, ComponentScores, DistrictRawData } from "@/lib/data/types";
 import { getScoreColor, getScoreLabel, calculateDistrictScores, DEFAULT_WEIGHTS } from "@/lib/scoring/engine";
+import { calcQoQTrend } from "@/lib/data/quarters";
 
 // ─── Fixed district colors (Montgomery official palette) ─────────────────────
 
@@ -161,8 +162,8 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
     ? ((raw.requests311Resolved / raw.requests311Total) * 100).toFixed(0) : "0";
   const newConstRatio = raw.permits180d > 0
     ? ((raw.permitsNewConstruction / raw.permits180d) * 100).toFixed(0) : "0";
-  const fireTrendPct = raw.fireResponseCountPrev90d > 0
-    ? ((raw.fireResponseCount90d - raw.fireResponseCountPrev90d) / raw.fireResponseCountPrev90d * 100) : 0;
+  // fireTrendPct removed — the halfpoint-split comparison was a synthetic
+  // artifact of a stale dataset and not a true period-over-period value.
 
   const iconSrc = COMPONENT_ICONS[componentKey];
 
@@ -220,28 +221,28 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
             <BRow label="Nuisance Reports (90d)" sub="Illegal dumping, blight, pollution complaints"
               value={raw.nuisanceCount90d} inverted weight={10} />
             <SectionLabel label="TREND MODIFIER — weight: 15%" />
-            {/* Human-readable trend: ▲ = more incidents (worse), ▼ = fewer (better) */}
             <div className="flex justify-between items-center gap-2 mt-1">
-              <span className="text-xs font-semibold text-slate-700">Fire/EMS Incidents Trend</span>
-              <span className={`text-xs font-bold shrink-0 ${fireTrendPct < 0 ? "text-emerald-500" : "text-rose-400"}`}>
-                {fireTrendPct >= 0 ? "▲" : "▼"} {Math.abs(fireTrendPct).toFixed(1)}% vs prior period
-              </span>
+              <span className="text-xs font-semibold text-slate-700">Fire/EMS Incident Trend</span>
+              <span className="text-[11px] font-medium text-slate-400 italic shrink-0">No prior quarter data</span>
             </div>
           </>)}
 
           {componentKey === "economic" && (<>
             <SectionLabel label="CONSTRUCTION ACTIVITY — weight: 45%" />
             <div className="space-y-2.5">
-              <BRow label="Total Permits (180d)" value={raw.permits180d} prev={raw.permits180dPrev} weight={45} />
+              <BRow label="Total Permits (180d)" value={raw.permits180d}
+                prev={raw.permits180dPrev || undefined} weight={45} />
               <BRow label="New Construction" sub="Ground-up builds (higher = more investment)"
-                value={raw.permitsNewConstruction} prev={raw.permitsNewConstructionPrev} />
+                value={raw.permitsNewConstruction}
+                prev={raw.permitsNewConstructionPrev || undefined} />
               <BRow label="Renovation / Other"
                 value={raw.permits180d - raw.permitsNewConstruction}
-                prev={raw.permits180dPrev - raw.permitsNewConstructionPrev} />
+                prev={(raw.permits180dPrev - raw.permitsNewConstructionPrev) || undefined} />
             </div>
             <SectionLabel label="BUSINESS GROWTH — weight: 30%" />
             <div className="space-y-2.5">
-              <BRow label="New Business Licenses" value={raw.bizLicensesNew} prev={raw.bizLicensesNewPrev} weight={30} />
+              <BRow label="New Business Licenses" value={raw.bizLicensesNew}
+                prev={raw.bizLicensesNewPrev || undefined} weight={30} />
               <BRow label="Active Licenses Total" sub="Current active in district" value={raw.bizLicensesActive} />
             </div>
             <SectionLabel label="DEVELOPMENT RATIO — weight: 25%" />
@@ -256,22 +257,25 @@ function ComponentScoreRow({ label, score, trend, componentKey, raw, population,
                 value={`${resRate}%`}
                 prev={raw.requests311TotalPrev > 0 ? Math.round((raw.requests311ResolvedPrev / raw.requests311TotalPrev) * 100) : undefined}
                 weight={55} />
-              <BRow label="Requests Resolved" value={raw.requests311Resolved} prev={raw.requests311ResolvedPrev} />
-              <BRow label="Total 311 Requests" value={raw.requests311Total} prev={raw.requests311TotalPrev} inverted />
+              <BRow label="Requests Resolved" value={raw.requests311Resolved}
+                prev={raw.requests311ResolvedPrev || undefined} />
+              <BRow label="Total 311 Requests" value={raw.requests311Total}
+                prev={raw.requests311TotalPrev || undefined} inverted />
             </div>
             <SectionLabel label="RESPONSE SPEED — weight: 45%" />
             <BRow label="Avg Resolution Time" sub={`Target: ≤ 7 days · Currently ${raw.avgResolutionDays > 7 ? "above" : "on"} target`}
-              value={`${raw.avgResolutionDays}d`} prev={raw.avgResolutionDaysPrev} inverted weight={45} />
+              value={`${raw.avgResolutionDays}d`} prev={raw.avgResolutionDaysPrev || undefined} inverted weight={45} />
           </>)}
 
           {componentKey === "code" && (<>
             <SectionLabel label="VIOLATIONS — weight: 60%" />
             <BRow label="Open Code Violations" sub={`${perCapita(raw.codeViolationsOpen)}/10K residents per capita`}
-              value={raw.codeViolationsOpen} prev={raw.codeViolationsOpenPrev} inverted weight={60} />
+              value={raw.codeViolationsOpen}
+              prev={raw.codeViolationsOpenPrev || undefined} inverted weight={60} />
             <SectionLabel label="ENFORCEMENT — weight: 40%" />
-            <BRow label="Closure Rate" sub={`Target ≥ 60% · ${(raw.codeViolationsClosedRate * 100).toFixed(0)}% of violations successfully closed`}
+            <BRow label="Closure Rate" sub={`City median: 26% · ${(raw.codeViolationsClosedRate * 100).toFixed(0)}% of violations successfully closed`}
               value={`${(raw.codeViolationsClosedRate * 100).toFixed(0)}%`}
-              prev={Math.round(raw.codeViolationsClosedRatePrev * 100)}
+              prev={raw.codeViolationsClosedRatePrev > 0 ? Math.round(raw.codeViolationsClosedRatePrev * 100) : undefined}
               weight={40} />
           </>)}
 
@@ -565,12 +569,29 @@ export default function Dashboard() {
   const selectedIdRef = useRef<number | null>(null);
 
   // ── Derived: re-score with custom weights ──────────────
+  // When a prior-quarter snapshot exists, component trends and the overall
+  // trend are replaced with true QoQ fractions so the UI displays genuine
+  // "vs. previous quarter" comparisons. Without a snapshot, all trends are
+  // zeroed out so no misleading benchmark percentages are shown.
   const districtData = useMemo((): DistrictData[] => {
-    return apiData.map(({ district, raw }) => ({
-      district,
-      raw,
-      scores: calculateDistrictScores(raw, district.population, weights),
-    }));
+    return apiData.map(({ district, raw, priorQuarter }) => {
+      const scores = calculateDistrictScores(raw, district.population, weights);
+      if (priorQuarter) {
+        scores.trends = {
+          safety:    calcQoQTrend(scores.safety,    priorQuarter.safety),
+          economic:  calcQoQTrend(scores.economic,  priorQuarter.economic),
+          services:  calcQoQTrend(scores.services,  priorQuarter.services),
+          code:      calcQoQTrend(scores.code,      priorQuarter.code),
+          community: calcQoQTrend(scores.community, priorQuarter.community),
+        };
+        scores.trend = calcQoQTrend(scores.overall, priorQuarter.overall);
+      } else {
+        // No historical data — zero all trends so hasTrend guard hides badges
+        scores.trends = { safety: 0, economic: 0, services: 0, code: 0, community: 0 };
+        scores.trend = 0;
+      }
+      return { district, raw, scores, priorQuarter };
+    });
   }, [apiData, weights]);
 
   // ── Fetch data ─────────────────────────────────────────
@@ -943,25 +964,17 @@ export default function Dashboard() {
                   <span className={`text-xs font-bold px-3.5 py-1 rounded-full ${BADGE_STYLES[selected.scores.label]}`}>
                     {selected.scores.label}
                   </span>
-                  {(() => {
-                    const prior = selected.raw.priorOverallScore;
-                    let up: boolean;
-                    let pct: string;
-                    if (prior > 0) {
-                      const delta = ((selected.scores.overall - prior) / prior) * 100;
-                      up = delta >= 0;
-                      pct = Math.abs(delta).toFixed(1);
-                    } else {
-                      const tr = selected.scores.trends;
-                      const wt = tr.safety * 0.25 + tr.economic * 0.20 + tr.services * 0.20 + tr.code * 0.20 + tr.community * 0.15;
-                      if (Math.abs(wt) < 0.005) return null;
-                      up = wt > 0;
-                      pct = (Math.abs(wt) * 100).toFixed(1);
-                    }
+                  {/* Overall QoQ trend — only displayed when a real prior-quarter
+                      snapshot exists. Never shows benchmark or synthetic values. */}
+                  {selected.priorQuarter && (() => {
+                    const delta = ((selected.scores.overall - selected.priorQuarter.overall)
+                                   / selected.priorQuarter.overall) * 100;
+                    if (Math.abs(delta) < 0.05) return null; // suppress rounding noise
+                    const up = delta > 0;
                     return (
                       <div className="text-xs font-semibold flex items-center gap-1"
                         style={{ color: up ? "#059669" : "#dc2626" }}>
-                        {up ? "▲" : "▼"} {pct}% vs. prior quarter
+                        {up ? "▲" : "▼"} {Math.abs(delta).toFixed(1)}% vs. previous quarter
                       </div>
                     );
                   })()}

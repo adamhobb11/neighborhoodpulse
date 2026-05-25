@@ -181,9 +181,30 @@ export interface DistrictRawData {
 }
 
 export interface DistrictData {
-  district: District;
-  scores: DistrictScores;
-  raw: DistrictRawData;
+  district:      District;
+  scores:        DistrictScores;
+  raw:           DistrictRawData;
+  priorQuarter?: QuarterlySnapshot; // present when a prior-quarter snapshot exists
+}
+
+// ─── Historical Snapshot Types ──────────────────────────
+
+/**
+ * Quarterly snapshot of computed district scores.
+ * Written once per quarter by scripts/snapshot.ts.
+ * Only scores are stored — raw data is not retained.
+ */
+export interface QuarterlySnapshot {
+  quarter:      string;               // 'YYYY-QN'  e.g. '2026-Q2'
+  snapshotDate: string;               // ISO 8601 timestamp of when captured
+  districtId:   number;               // 1–9
+  overall:      number;               // 0–100
+  safety:       number;
+  economic:     number;
+  services:     number;
+  code:         number;
+  community:    number;
+  label:        DistrictScores["label"]; // health status at snapshot time
 }
 
 // ─── AI Briefing Types ──────────────────────────────────

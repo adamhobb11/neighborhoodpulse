@@ -4,6 +4,10 @@
  * Fetches live data from Montgomery's ArcGIS Open Data Portal,
  * aggregates it by council district, and computes health index scores.
  *
+ * Also loads the prior-quarter snapshot (if one exists) and injects it
+ * as `priorQuarter` into each DistrictData item so the client can render
+ * true quarter-over-quarter trend comparisons.
+ *
  * Returns an error if live data is unavailable — never falls back to mock data.
  */
 
@@ -12,6 +16,9 @@ import { fetchAllDatasets } from "@/lib/data/arcgis";
 import { aggregateAllData } from "@/lib/data/aggregate";
 import { calculateDistrictScores } from "@/lib/scoring/engine";
 import { DISTRICTS } from "@/lib/data/mockData";
+import { getPriorQuarterKey } from "@/lib/data/quarters";
+import { readSnapshot } from "@/lib/data/snapshotStore";
+import type { QuarterlySnapshot } from "@/lib/data/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -52,16 +59,35 @@ export async function GET() {
       shelters: datasets.shelters?.features ?? [],
     });
 
-    // ── Score each district ───────────────────────────────────────────────
+    // ── Load prior-quarter snapshot (null when no snapshot exists yet) ────
+    const priorKey = getPriorQuarterKey();
+    const priorSnapshots = readSnapshot(priorKey);
+    const priorByDistrict: Record<number, QuarterlySnapshot> = {};
+    if (priorSnapshots) {
+      for (const s of priorSnapshots) {
+        priorByDistrict[s.districtId] = s;
+      }
+    }
+
+    // ── Score each district and attach prior-quarter data ─────────────────
     const districtData = DISTRICTS.map((district) => {
       const raw = rawByDistrict[district.id];
       const scores = calculateDistrictScores(raw, district.population);
-      return { district, scores, raw };
+      const priorQuarter = priorByDistrict[district.id];
+
+      return {
+        district,
+        scores,
+        raw,
+        // undefined when no snapshot exists — client treats this as "no QoQ data"
+        priorQuarter: priorQuarter ?? undefined,
+      };
     });
 
     return NextResponse.json({
       data: districtData,
       source: "live",
+      priorQuarterKey: priorSnapshots ? priorKey : null,
       warnings: datasets.errors.length > 0
         ? { partialData: true, failedEndpoints: datasets.errors }
         : undefined,
